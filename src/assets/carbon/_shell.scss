@@ -1,0 +1,118 @@
+// Carbon shell: labelled sidebar on desktop, header and bottom bar on mobile
+
+.carbon.has-sidebar {
+    display: flex;
+    align-items: flex-start;
+}
+
+.carbon-sidebar {
+    position: sticky;
+    top: 0;
+    flex: 0 0 232px;
+    width: 232px;
+    height: 100vh;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
+}
+
+.carbon a.carbon-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px 0;
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 600;
+    color: var(--c-fg);
+    text-decoration: none;
+}
+
+.carbon-scope {
+    padding: 0 8px 18px 40px;
+    margin-top: -3px;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--c-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.carbon .carbon-nav,
+.carbon a.carbon-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: var(--c-fg-2);
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+
+    &:hover {
+        color: var(--c-fg);
+    }
+
+    &.is-on {
+        color: var(--c-fg);
+        background-color: var(--c-fill);
+    }
+
+    .count {
+        margin-left: auto;
+        font-size: 12px;
+        color: var(--c-muted);
+    }
+
+    .avatar {
+        flex: 0 0 22px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: #8fe3b4;
+        background-color: #1c2a22;
+        object-fit: cover;
+    }
+}
+
+.carbon-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 1208px;
+    padding: 28px 40px 48px;
+}
+
+.carbon-mobile-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px 4px;
+}
+
+.carbon.mobile .carbon-main {
+    padding: 12px 16px 24px;
+}
+
+.carbon .bottom-nav {
+    background-color: var(--c-bg);
+    border-top: 1px solid var(--c-line);
+
+    a {
+        color: var(--c-faint);
+
+        &.is-on {
+            color: var(--c-fg);
+        }
+    }
+}

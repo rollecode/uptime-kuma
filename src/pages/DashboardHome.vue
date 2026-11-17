@@ -1,95 +1,88 @@
 <template>
-    <transition ref="tableContainer" name="slide-fade" appear>
-        <div v-if="$route.name === 'DashboardHome'">
-            <h1 class="mb-3">
-                {{ $t("Quick Stats") }}
-            </h1>
+    <div v-if="$route.name === 'DashboardHome'" class="carbon-home">
+        <h1>{{ $t("Overview") }}</h1>
+        <StatusFinding>
+            <template v-if="lastIncident">
+                {{ $t("lastIncident", [lastIncident.name, shortDate(lastIncident.time)]) }}
+            </template>
+        </StatusFinding>
 
-            <div class="shadow-box big-padding text-center mb-3">
-                <div class="row">
-                    <div class="col">
-                        <h3>{{ $t("Up") }}</h3>
-                        <span class="num" :class="$root.stats.up === 0 && 'text-secondary'">
-                            {{ $root.stats.up }}
-                        </span>
-                    </div>
-                    <div class="col">
-                        <h3>{{ $t("Down") }}</h3>
-                        <span class="num" :class="$root.stats.down > 0 ? 'text-danger' : 'text-secondary'">
-                            {{ $root.stats.down }}
-                        </span>
-                    </div>
-                    <div class="col">
-                        <h3>{{ $t("Maintenance") }}</h3>
-                        <span class="num" :class="$root.stats.maintenance > 0 ? 'text-maintenance' : 'text-secondary'">
-                            {{ $root.stats.maintenance }}
-                        </span>
-                    </div>
-                    <div class="col">
-                        <h3>{{ $t("Unknown") }}</h3>
-                        <span class="num text-secondary">{{ $root.stats.unknown }}</span>
-                    </div>
-                    <div class="col">
-                        <h3>{{ $t("pauseDashboardHome") }}</h3>
-                        <span class="num text-secondary">{{ $root.stats.pause }}</span>
-                    </div>
+        <div class="carbon-strip">
+            <span class="big" :class="summary.down > 0 ? 'down' : 'up'">
+                <span class="carbon-dot" aria-hidden="true"><i /></span>
+                {{ $t("upOfTotal", [summary.up, running]) }}
+            </span>
+            <i18n-t keypath="countDown" tag="span">
+                <b>{{ summary.down }}</b>
+            </i18n-t>
+            <i18n-t keypath="countMaintenance" tag="span">
+                <b>{{ summary.maintenance }}</b>
+            </i18n-t>
+            <i18n-t keypath="countPaused" tag="span">
+                <b>{{ summary.paused }}</b>
+            </i18n-t>
+            <i18n-t v-if="avgPing != null" keypath="avgResponse" tag="span">
+                <b>{{ avgPing }} ms</b>
+            </i18n-t>
+        </div>
+
+        <div class="carbon-home-grid">
+            <section>
+                <div class="carbon-section-head">
+                    <h2>{{ $t("Needs attention") }}</h2>
                 </div>
-            </div>
 
-            <div class="shadow-box table-shadow-box table-wrapper">
-                <div class="mb-3 text-end">
+                <EmptyState
+                    v-if="summary.downList.length === 0"
+                    illustration="lighthouse"
+                    large
+                    :title="$t('Nothing needs you right now')"
+                >
+                    {{ calmText }}
+                </EmptyState>
+
+                <div v-for="monitor in summary.downList" :key="monitor.id" class="carbon-event carbon-linkrow">
+                    <span class="carbon-dot down" aria-hidden="true"><i /></span>
+                    <span class="text">
+                        <router-link :to="`/dashboard/${monitor.id}`" class="carbon-linkrow-target">
+                            {{ monitor.name }}
+                        </router-link>
+                        <span class="sub">{{ downDetail(monitor) }}</span>
+                    </span>
+                    <span class="when">{{ shortDate($root.statusSince[monitor.id]) }}</span>
+                </div>
+            </section>
+
+            <section>
+                <div class="carbon-section-head">
+                    <h2>{{ $t("Recently") }}</h2>
                     <button
-                        class="btn btn-sm btn-outline-danger"
+                        v-if="importantHeartBeatListLength > 0"
+                        type="button"
+                        class="carbon-quiet"
                         :disabled="clearingAllEvents"
                         @click="clearAllEventsDialog"
                     >
-                        {{ $t("Clear All Events") }}
+                        {{ $t("Clear") }}
                     </button>
                 </div>
-                <table class="table table-borderless table-hover">
-                    <thead>
-                        <tr>
-                            <th v-if="showGroupColumn">{{ $t("Group Name") }}</th>
-                            <th class="name-column">{{ $t("Name") }}</th>
-                            <th>{{ $t("Status") }}</th>
-                            <th>{{ $t("DateTime") }}</th>
-                            <th>{{ $t("Message") }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="(beat, index) in displayedRecords"
-                            :key="index"
-                            :class="{ 'shadow-box': $root.windowWidth <= 550 }"
-                        >
-                            <td v-if="showGroupColumn">
-                                <router-link
-                                    v-if="getGroupName(beat.monitorID)"
-                                    :to="`/dashboard/${getGroupId(beat.monitorID)}`"
-                                >
-                                    {{ getGroupName(beat.monitorID) }}
-                                </router-link>
-                                <span v-else class="text-secondary">—</span>
-                            </td>
-                            <td class="name-column">
-                                <router-link :to="`/dashboard/${beat.monitorID}`">
-                                    {{ $root.monitorList[beat.monitorID]?.name }}
-                                </router-link>
-                            </td>
-                            <td><Status :status="beat.status" /></td>
-                            <td :class="{ 'border-0': !beat.msg }"><Datetime :value="beat.time" /></td>
-                            <td class="border-0">{{ beat.msg }}</td>
-                        </tr>
 
-                        <tr v-if="importantHeartBeatListLength === 0">
-                            <td :colspan="tableColumnCount">
-                                {{ $t("No important events") }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div v-for="(beat, index) in displayedRecords" :key="index" class="carbon-event carbon-linkrow">
+                    <span class="carbon-dot" :class="statusKey(beat.status)" aria-hidden="true"><i /></span>
+                    <span class="text">
+                        <router-link :to="`/dashboard/${beat.monitorID}`" class="carbon-linkrow-target">
+                            {{ eventTitle(beat) }}
+                        </router-link>
+                        <span v-if="beat.msg" class="sub">{{ beat.msg }}</span>
+                    </span>
+                    <span class="when" :title="$root.datetime(beat.time)">{{ shortDate(beat.time) }}</span>
+                </div>
 
-                <div class="d-flex justify-content-center kuma_pagination">
+                <div v-if="importantHeartBeatListLength === 0" class="carbon-empty-line">
+                    {{ $t("No important events") }}
+                </div>
+
+                <div v-if="importantHeartBeatListLength > perPage" class="kuma_pagination">
                     <pagination
                         v-model="page"
                         :records="importantHeartBeatListLength"
@@ -97,9 +90,9 @@
                         :options="paginationConfig"
                     />
                 </div>
-            </div>
+            </section>
         </div>
-    </transition>
+    </div>
     <Confirm
         ref="confirmClearEvents"
         btn-style="btn-danger"
@@ -113,17 +106,23 @@
 </template>
 
 <script>
-import Status from "../components/Status.vue";
-import Datetime from "../components/Datetime.vue";
+import dayjs from "dayjs";
 import Pagination from "v-pagination-3";
 import Confirm from "../components/Confirm.vue";
+import StatusFinding from "../components/StatusFinding.vue";
+import EmptyState from "../components/EmptyState.vue";
+import { shortDuration } from "../util-frontend";
+import { UP, DOWN, PENDING, MAINTENANCE } from "../util.ts";
+
+// Channel names that are plain words read lowercase inside a sentence
+const GENERIC_NAMES = /^(email|e-mail|webhook|sms)$/i;
 
 export default {
     components: {
-        Datetime,
-        Status,
         Pagination,
         Confirm,
+        StatusFinding,
+        EmptyState,
     },
     props: {
         calculatedHeight: {
@@ -134,8 +133,7 @@ export default {
     data() {
         return {
             page: 1,
-            perPage: 25,
-            initialPerPage: 25,
+            perPage: 8,
             paginationConfig: {
                 hideCount: true,
                 chunksNavigation: "scroll",
@@ -146,11 +144,55 @@ export default {
         };
     },
     computed: {
-        showGroupColumn() {
-            return Object.values(this.$root.monitorList).some((m) => m.parent != null);
+        summary() {
+            return this.$root.checkSummary;
         },
-        tableColumnCount() {
-            return this.showGroupColumn ? 5 : 4;
+
+        running() {
+            return this.summary.total - this.summary.paused;
+        },
+
+        /**
+         * Mean of the 24-hour average response times
+         * @returns {number|null} Milliseconds, or null without data
+         */
+        avgPing() {
+            const pings = Object.values(this.$root.monitorList)
+                .filter((m) => m.type !== "group" && m.active)
+                .map((m) => this.$root.avgPingList[m.id])
+                .filter((ping) => typeof ping === "number");
+            if (pings.length === 0) {
+                return null;
+            }
+            return Math.round(pings.reduce((a, b) => a + b, 0) / pings.length);
+        },
+
+        /**
+         * The latest down event, told when nothing is down now
+         * @returns {object|null} Monitor name and time
+         */
+        lastIncident() {
+            if (this.summary.down > 0) {
+                return null;
+            }
+            const beat = this.displayedRecords.find((b) => b.status === DOWN);
+            const monitor = beat && this.$root.monitorList[beat.monitorID];
+            return monitor ? { name: monitor.name, time: beat.time } : null;
+        },
+
+        /**
+         * "Bark and email tell you the moment one goes down."
+         * @returns {string} Sentence for the calm state
+         */
+        calmText() {
+            const names = this.$root.notificationList.map((n) =>
+                GENERIC_NAMES.test(n.name) ? n.name.toLowerCase() : n.name
+            );
+            if (names.length === 0) {
+                return this.$t("No monitor is down right now.");
+            }
+            const list = new Intl.ListFormat(this.$i18n.locale, { type: "conjunction" }).format(names);
+            return this.$t(names.length === 1 ? "nothingDownNotified" : "nothingDownNotifiedMany", [list]);
         },
     },
     watch: {
@@ -167,44 +209,70 @@ export default {
 
     mounted() {
         this.getImportantHeartbeatListLength();
+        this.$root.loadStatusSince();
 
         this.$root.emitter.on("newImportantHeartbeat", this.onNewImportantHeartbeat);
-
-        this.initialPerPage = this.perPage;
-
-        window.addEventListener("resize", this.updatePerPage);
-        this.updatePerPage();
     },
 
     beforeUnmount() {
         this.$root.emitter.off("newImportantHeartbeat", this.onNewImportantHeartbeat);
-
-        window.removeEventListener("resize", this.updatePerPage);
     },
 
     methods: {
         /**
-         * Returns the group (parent) name for a monitor, or empty string if none.
-         * @param {number} monitorID - The monitor ID.
-         * @returns {string} The group name or empty string.
+         * Date of a heartbeat time: the clock time today, the day and month before that
+         * @param {string} time UTC time from the server
+         * @returns {string} Short date
          */
-        getGroupName(monitorID) {
-            const monitor = this.$root.monitorList[monitorID];
-            if (!monitor || monitor.parent == null) {
+        shortDate(time) {
+            if (!time) {
                 return "";
             }
-            const parent = this.$root.monitorList[monitor.parent];
-            return parent ? parent.name : "";
+            const local = dayjs.utc(time).local();
+            return local.isSame(dayjs(), "day") ? local.format("HH:mm") : local.format("D.M.");
         },
 
         /**
-         * Returns the group (parent) ID for a monitor, or null if none.
-         * @param {number} monitorID - The monitor ID.
-         * @returns {number|null} The group monitor ID or null.
+         * Colour key for a heartbeat status
+         * @param {number} status Heartbeat status
+         * @returns {string} Key used by .carbon-dot
          */
-        getGroupId(monitorID) {
-            const monitor = this.$root.monitorList[monitorID];
-            return monitor && monitor.parent != null ? monitor.parent : null;
+        statusKey(status) {
+            return { [UP]: "up", [DOWN]: "down", [PENDING]: "pending", [MAINTENANCE]: "maintenance" }[status] ?? "wait";
+        },
+
+        /**
+         * What happened, in words: "Shop is down"
+         * @param {object} beat Important heartbeat
+         * @returns {string} Event title
+         */
+        eventTitle(beat) {
+            const name = this.$root.monitorList[beat.monitorID]?.name ?? `#${beat.monitorID}`;
+            const keys = {
+                [UP]: "eventUp",
+                [DOWN]: "eventDown",
+                [PENDING]: "eventPending",
+                [MAINTENANCE]: "eventMaintenance",
+            };
+            return this.$t(keys[beat.status] ?? "eventUp", [name]);
+        },
+
+        /**
+         * How long a monitor has been down and why
+         * @param {object} monitor Monitor that is down
+         * @returns {string} Detail line
+         */
+        downDetail(monitor) {
+            const since = this.$root.statusSince[monitor.id];
+            const msg = this.$root.lastHeartbeatList[monitor.id]?.msg;
+            const parts = [];
+            if (since) {
+                parts.push(this.$t("downForLong", [shortDuration(dayjs().diff(dayjs.utc(since), "second"))]));
+            }
+            if (msg) {
+                parts.push(msg);
+            }
+            return parts.join(" · ");
         },
 
         /**
@@ -248,23 +316,6 @@ export default {
             });
         },
 
-        /**
-         * Updates the number of items shown per page based on the available height.
-         * @returns {void}
-         */
-        updatePerPage() {
-            const tableContainer = this.$refs.tableContainer;
-            const tableContainerHeight = tableContainer.offsetHeight;
-            const availableHeight = window.innerHeight - tableContainerHeight;
-            const additionalPerPage = Math.floor(availableHeight / 58);
-
-            if (additionalPerPage > 0) {
-                this.perPage = Math.max(this.initialPerPage, this.perPage + additionalPerPage);
-            } else {
-                this.perPage = this.initialPerPage;
-            }
-        },
-
         clearAllEventsDialog() {
             this.$refs.confirmClearEvents.show();
         },
@@ -304,47 +355,3 @@ export default {
     },
 };
 </script>
-
-<style lang="scss" scoped>
-@import "../assets/vars";
-
-.num {
-    font-size: 30px;
-    color: $primary;
-    font-weight: bold;
-    display: block;
-}
-
-.shadow-box {
-    padding: 20px;
-}
-
-table {
-    font-size: 14px;
-
-    tr {
-        transition: all ease-in-out 0.2ms;
-    }
-
-    @media (max-width: 550px) {
-        table-layout: fixed;
-        overflow-wrap: break-word;
-    }
-}
-
-@media screen and (max-width: 1280px) {
-    .name-column {
-        min-width: 150px;
-    }
-}
-
-@media screen and (min-aspect-ratio: 4/3) {
-    .name-column {
-        min-width: 200px;
-    }
-}
-
-.table-wrapper {
-    overflow-x: auto;
-}
-</style>

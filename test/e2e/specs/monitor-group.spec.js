@@ -29,23 +29,23 @@ test.describe("Monitor Group", () => {
         await page.waitForURL("/dashboard/*");
 
         // Saving navigates to the new monitor's details page; go back to the list
-        await page.goto("./dashboard");
+        await page.goto("./list");
         await page.waitForSelector('[data-testid="monitor-list"] .draggable-item');
 
         const monitorList = page.getByTestId("monitor-list");
         await expect(monitorList).toContainText(groupName);
 
-        // Groups are collapsed by default: the child row is hidden
-        await expect(monitorList).not.toContainText(childName);
-
-        // Expanding the group shows the child row
-        await page.getByTestId("monitor-collapse").first().click();
-        await expect(monitorList).toContainText(childName);
+        // Groups are open by default: the child row is listed
+        await expect(monitorList.locator("a.nm", { hasText: childName })).toBeVisible();
         await screenshot(testInfo, page);
 
-        // Collapsing again hides it
+        // Collapsing the group hides it
         await page.getByTestId("monitor-collapse").first().click();
-        await expect(monitorList).not.toContainText(childName);
+        await expect(monitorList.locator("a.nm", { hasText: childName })).toHaveCount(0);
+
+        // Expanding again shows it
+        await page.getByTestId("monitor-collapse").first().click();
+        await expect(monitorList.locator("a.nm", { hasText: childName })).toBeVisible();
     });
     test("moves a monitor to another group by drag and drop", async ({ page }) => {
         const groupA = "Group A";
@@ -76,20 +76,15 @@ test.describe("Monitor Group", () => {
         await page.getByTestId("save-button").click();
         await page.waitForURL("/dashboard/*");
 
-        await page.goto("./dashboard");
+        await page.goto("./list");
         await page.waitForSelector('[data-testid="monitor-list"] .draggable-item');
 
-        // Expand group A so the child row is visible, then drag it onto group B
+        // Groups are open, so the child row is visible; drag it onto group B's header
+        const childHref = await page.locator("a.nm", { hasText: childName }).first().getAttribute("href");
         await page
-            .locator(".draggable-item", { hasText: groupA })
-            .locator('[data-testid="monitor-collapse"]')
+            .locator("a.nm", { hasText: childName })
             .first()
-            .click();
-        const childHref = await page.locator("a.item", { hasText: childName }).first().getAttribute("href");
-        await page
-            .locator("a.item", { hasText: childName })
-            .first()
-            .dragTo(page.locator("a.item", { hasText: groupB }).first());
+            .dragTo(page.locator(".carbon-group", { hasText: groupB }).first());
 
         // The monitor now belongs to group B
         const childId = childHref.split("/").pop();

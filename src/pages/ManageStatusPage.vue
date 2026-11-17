@@ -1,55 +1,49 @@
 <template>
-    <transition name="slide-fade" appear>
-        <div>
-            <h1 class="mb-3">
-                {{ $t("Status Pages") }}
-            </h1>
-
-            <div>
-                <router-link to="/add-status-page" class="btn btn-primary mb-3">
-                    <font-awesome-icon icon="plus" />
-                    {{ $t("New Status Page") }}
-                </router-link>
-            </div>
-
-            <div class="shadow-box">
-                <template v-if="$root.statusPageListLoaded">
-                    <span
-                        v-if="Object.keys($root.statusPageList).length === 0"
-                        class="d-flex align-items-center justify-content-center my-3"
-                    >
-                        {{ $t("No status pages") }}
-                    </span>
-
-                    <!-- use <a> instead of <router-link>, because the heartbeat won't load. -->
-                    <a
-                        v-for="statusPage in $root.statusPageList"
-                        :key="statusPage.slug"
-                        :href="'/status/' + statusPage.slug"
-                        class="item"
-                    >
-                        <img :src="icon(statusPage.icon)" alt class="logo me-2" />
-                        <div class="info">
-                            <div class="title">{{ statusPage.title }}</div>
-                            <div class="slug">/status/{{ statusPage.slug }}</div>
-                        </div>
-                        <div class="actions">
-                            <button
-                                class="btn btn-danger delete-status-page"
-                                @click.stop.prevent="deleteDialog(statusPage.slug)"
-                            >
-                                <font-awesome-icon icon="trash" />
-                                <span>{{ $t("Delete") }}</span>
-                            </button>
-                        </div>
-                    </a>
-                </template>
-                <div v-else class="d-flex align-items-center justify-content-center my-3 spinner">
-                    <font-awesome-icon icon="spinner" size="2x" spin />
-                </div>
+    <div class="carbon-page">
+        <div class="carbon-top">
+            <h1>{{ $t("Status pages") }}</h1>
+            <div class="carbon-tools">
+                <router-link to="/add-status-page" class="btn btn-primary">{{ $t("New status page") }}</router-link>
             </div>
         </div>
-    </transition>
+
+        <template v-if="$root.statusPageListLoaded">
+            <EmptyState
+                v-if="Object.keys($root.statusPageList).length === 0"
+                illustration="semaphore"
+                :title="$t('No status pages yet')"
+                class="mt-4"
+            >
+                {{ $t("statusPagesEmptyHelp") }}
+            </EmptyState>
+
+            <div v-else class="mt-3">
+                <!-- use <a> instead of <router-link>, because the heartbeat won't load. -->
+                <a
+                    v-for="statusPage in $root.statusPageList"
+                    :key="statusPage.slug"
+                    :href="'/status/' + statusPage.slug"
+                    class="carbon-event carbon-row-link carbon-linkrow"
+                >
+                    <img :src="icon(statusPage.icon)" alt="" class="carbon-status-icon" />
+                    <span class="text">
+                        {{ statusPage.title }}
+                        <span class="sub carbon-mono">/status/{{ statusPage.slug }}</span>
+                    </span>
+                    <span class="when">
+                        <button
+                            type="button"
+                            class="carbon-quiet delete-status-page"
+                            @click.stop.prevent="deleteDialog(statusPage.slug)"
+                        >
+                            {{ $t("Delete") }}
+                        </button>
+                    </span>
+                </a>
+            </div>
+        </template>
+        <p v-else class="carbon-muted mt-4">{{ $t("Loading…") }}</p>
+    </div>
     <Confirm
         ref="confirmDelete"
         btn-style="btn-danger"
@@ -62,11 +56,13 @@
 </template>
 
 <script>
+import EmptyState from "../components/EmptyState.vue";
 import Confirm from "../components/Confirm.vue";
 import { getResBaseURL } from "../util-frontend";
 
 export default {
     components: {
+        EmptyState,
         Confirm,
     },
     props: {
@@ -112,93 +108,3 @@ export default {
     },
 };
 </script>
-
-<style lang="scss" scoped>
-@import "../assets/vars.scss";
-
-.item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-    border-radius: 10px;
-    transition: all ease-in-out 0.15s;
-    padding: 10px;
-
-    &:hover {
-        background-color: $highlight-white;
-
-        & .actions {
-            visibility: visible;
-        }
-    }
-
-    &.active {
-        background-color: #cdf8f4;
-    }
-
-    $logo-width: 70px;
-
-    .logo {
-        width: $logo-width;
-        height: $logo-width;
-
-        // Better when the image is loading
-        min-height: 1px;
-    }
-
-    .info {
-        flex: 1 1 auto;
-
-        .title {
-            font-weight: bold;
-            font-size: 20px;
-        }
-
-        .slug {
-            font-size: 14px;
-        }
-    }
-
-    .actions {
-        visibility: hidden;
-        display: flex;
-        align-items: center;
-
-        .delete-status-page {
-            flex: 1 1 auto;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-    }
-}
-
-.dark {
-    .item {
-        &:hover {
-            background-color: $dark-bg2;
-        }
-
-        &.active {
-            background-color: $dark-bg2;
-        }
-    }
-}
-
-@media (max-width: 770px) {
-    .item {
-        .actions {
-            visibility: visible;
-
-            .btn {
-                padding: 10px;
-            }
-
-            span {
-                display: none;
-            }
-        }
-    }
-}
-</style>

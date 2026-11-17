@@ -36,7 +36,7 @@ async function addMonitor(page, options, loginFirst = false) {
  * @returns {Promise<import("@playwright/test").Locator>} Monitor list locator
  */
 async function openDashboard(page) {
-    await page.goto("./dashboard");
+    await page.goto("./list");
     await page.waitForSelector('[data-testid="monitor-list"] .draggable-item');
     return page.getByTestId("monitor-list");
 }
@@ -57,9 +57,9 @@ async function confirmDialog(page) {
  * @returns {Promise<void>}
  */
 async function openDetails(page, name) {
-    await page.goto("./dashboard");
+    await page.goto("./list");
     await page.waitForSelector('[data-testid="monitor-list"] .draggable-item');
-    await page.locator("a.item", { hasText: name }).first().click();
+    await page.locator("a.nm, a.carbon-group-name", { hasText: name }).first().click();
     await page.waitForURL(/\/dashboard\/\d+/);
 }
 
@@ -107,7 +107,6 @@ test.describe("Monitor list actions", () => {
 
         const list = await openDashboard(page);
         await expect(list).toContainText("Renamed Group");
-        await page.getByTestId("monitor-collapse").first().click();
         await expect(list).toContainText("Child A");
     });
 
@@ -116,6 +115,7 @@ test.describe("Monitor list actions", () => {
         await addMonitor(page, { name: "Child B", parent: "Group B" });
 
         await openDetails(page, "Group B");
+        await page.getByRole("button", { name: "More actions" }).click();
         await page.getByRole("button", { name: "Delete" }).click();
         await confirmDialog(page);
         await page.waitForURL(/\/dashboard$/);
@@ -130,14 +130,16 @@ test.describe("Monitor list actions", () => {
         await addMonitor(page, { name: "Child C", parent: "Group C" });
 
         await openDetails(page, "Group C");
+        await page.getByRole("button", { name: "More actions" }).click();
         await page.getByRole("button", { name: "Delete" }).click();
         await page.locator("#delete-children-checkbox").check();
         await confirmDialog(page);
         await page.waitForURL(/\/dashboard$/);
 
         // Nothing is left, so the list shows the empty state instead of rows
+        await page.goto("./list");
         await expect(page.locator(".draggable-item")).toHaveCount(0);
-        await expect(page.getByTestId("monitor-list")).toContainText("No Monitors");
+        await expect(page.getByTestId("monitor-list")).toContainText("No monitors yet");
     });
 
     test("creates a group from the monitor form", async ({ page }) => {
@@ -171,16 +173,19 @@ test.describe("Monitor list actions", () => {
         await addMonitor(page, { name: "Child Two", parent: "Group Two" });
 
         const list = await openDashboard(page);
-        await expect(list).not.toContainText("Child One");
-        await expect(list).not.toContainText("Child Two");
+        const child = (name) => list.locator("a.nm", { hasText: name });
+
+        // Groups start open
+        await expect(child("Child One")).toBeVisible();
+        await expect(child("Child Two")).toBeVisible();
 
         await page.getByTestId("collapse-all").click();
-        await expect(list).toContainText("Child One");
-        await expect(list).toContainText("Child Two");
+        await expect(child("Child One")).toHaveCount(0);
+        await expect(child("Child Two")).toHaveCount(0);
 
         await page.getByTestId("collapse-all").click();
-        await expect(list).not.toContainText("Child One");
-        await expect(list).not.toContainText("Child Two");
+        await expect(child("Child One")).toBeVisible();
+        await expect(child("Child Two")).toBeVisible();
     });
 
     test("switches the heartbeat bar theme", async ({ page }) => {

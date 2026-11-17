@@ -71,8 +71,11 @@ test.describe("Maintenance timeslot timezone", () => {
         await createMonitor(page);
 
         await openMaintenanceForm(page, "Single window", "single");
-        await page.locator('input[type="datetime-local"]').first().fill("2027-01-05T05:00");
-        await page.locator('input[type="datetime-local"]').nth(1).fill("2027-01-05T06:00");
+        // The date fields take d.M.yyyy HH:mm, 24-hour
+        await page.locator(".dp__input").first().fill("5.1.2027 05:00");
+        await page.locator(".dp__input").first().press("Enter");
+        await page.locator(".dp__input").nth(1).fill("5.1.2027 06:00");
+        await page.locator(".dp__input").nth(1).press("Enter");
         await page.locator("#monitor-submit-btn").click();
         await page.waitForURL("/maintenance");
 

@@ -1,83 +1,90 @@
 <template>
-    <div class="form-container">
-        <div class="form">
-            <form aria-label="Login Form" class="pt-3" @submit.prevent="submit">
-                <div v-if="!tokenRequired" class="form-floating">
+    <div class="carbon-login">
+        <div class="carbon-login-form">
+            <div class="carbon-login-brand">
+                <img src="/icon.svg" width="22" height="22" alt="" />
+                Uptime Kuma
+            </div>
+            <h1>{{ tokenRequired ? $t("Two-factor code") : $t("Sign in") }}</h1>
+            <p class="carbon-muted">{{ host }}</p>
+
+            <form :aria-label="$t('Sign in')" @submit.prevent="submit">
+                <template v-if="!tokenRequired">
+                    <label for="floatingInput" class="form-label">{{ $t("Username") }}</label>
                     <input
                         id="floatingInput"
                         v-model="username"
                         type="text"
                         class="form-control"
-                        placeholder="Username"
                         autocomplete="username"
                         required
                     />
-                    <label for="floatingInput">{{ $t("Username") }}</label>
-                </div>
 
-                <div v-if="!tokenRequired" class="form-floating mt-3">
-                    <input
-                        id="floatingPassword"
-                        v-model="password"
-                        type="password"
-                        class="form-control"
-                        placeholder="Password"
-                        autocomplete="current-password"
-                        required
-                    />
-                    <label for="floatingPassword">{{ $t("Password") }}</label>
-                </div>
-
-                <div v-if="tokenRequired">
-                    <div class="form-floating mt-3">
+                    <label for="floatingPassword" class="form-label">{{ $t("Password") }}</label>
+                    <div class="input-group">
                         <input
-                            id="otp"
-                            ref="otpInput"
-                            v-model="token"
-                            type="text"
-                            maxlength="6"
+                            id="floatingPassword"
+                            v-model="password"
+                            :type="showPassword ? 'text' : 'password'"
                             class="form-control"
-                            placeholder="123456"
-                            autocomplete="one-time-code"
+                            autocomplete="current-password"
                             required
                         />
-                        <label for="otp">{{ $t("Token") }}</label>
+                        <button
+                            type="button"
+                            class="btn btn-normal"
+                            :aria-label="showPassword ? $t('Hide password') : $t('Show password')"
+                            @click="showPassword = !showPassword"
+                        >
+                            <font-awesome-icon :icon="showPassword ? 'eye-slash' : 'eye'" />
+                        </button>
                     </div>
+                </template>
+
+                <template v-else>
+                    <label for="otp" class="form-label">{{ $t("twoFactorCodeHelp") }}</label>
+                    <input
+                        id="otp"
+                        ref="otpInput"
+                        v-model="token"
+                        type="text"
+                        inputmode="numeric"
+                        maxlength="6"
+                        class="form-control carbon-mono"
+                        autocomplete="one-time-code"
+                        required
+                    />
+                </template>
+
+                <p v-if="res && !res.ok" class="carbon-error" role="alert">{{ $t(res.msg) }}</p>
+
+                <div class="form-check">
+                    <input id="remember" v-model="$root.remember" type="checkbox" class="form-check-input" />
+                    <label class="form-check-label" for="remember">{{ $t("Remember me") }}</label>
                 </div>
 
-                <div class="form-check mb-3 mt-3 d-flex justify-content-center pe-4">
-                    <div class="form-check">
-                        <input
-                            id="remember"
-                            v-model="$root.remember"
-                            type="checkbox"
-                            value="remember-me"
-                            class="form-check-input"
-                        />
-
-                        <label class="form-check-label" for="remember">
-                            {{ $t("Remember me") }}
-                        </label>
-                    </div>
-                </div>
-                <button class="w-100 btn btn-primary" type="submit" :disabled="processing">
+                <button class="btn btn-primary w-100" type="submit" :disabled="processing">
                     {{ $t("Login") }}
                 </button>
-
-                <div v-if="res && !res.ok" class="alert alert-danger mt-3" role="alert">
-                    {{ $t(res.msg) }}
-                </div>
             </form>
         </div>
+
+        <figure class="carbon-login-art" aria-hidden="true">
+            <img :src="ship" alt="" />
+            <figcaption>{{ $t("loginArtCredit") }}</figcaption>
+        </figure>
     </div>
 </template>
 
 <script>
 import { login, verifyTotp } from "../auth-client";
+import ship from "../assets/carbon/art/ship.webp";
 
 export default {
     data() {
         return {
+            ship,
+            showPassword: false,
             processing: false,
             username: "",
             password: "",
@@ -85,6 +92,12 @@ export default {
             res: null,
             tokenRequired: false,
         };
+    },
+
+    computed: {
+        host() {
+            return location.host;
+        },
     },
 
     watch: {
@@ -132,30 +145,3 @@ export default {
     },
 };
 </script>
-
-<style lang="scss" scoped>
-.form-container {
-    display: flex;
-    align-items: center;
-    padding-top: 40px;
-    padding-bottom: 40px;
-}
-
-.form-floating {
-    > label {
-        padding-left: 1.3rem;
-    }
-
-    > .form-control {
-        padding-left: 1.3rem;
-    }
-}
-
-.form {
-    width: 100%;
-    max-width: 330px;
-    padding: 15px;
-    margin: auto;
-    text-align: center;
-}
-</style>

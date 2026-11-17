@@ -40,7 +40,7 @@ test.describe("Monitor details", () => {
 
         await expect(page.locator("h1")).toContainText(name);
         await expect(page.locator(".url")).toContainText("https://example.com");
-        await expect(page.getByText("Check every 60 seconds")).toBeVisible();
+        await expect(page.getByText(/every 1 min/)).toBeVisible();
         await expect(page.getByTestId("monitor-status")).toBeVisible();
 
         await page.getByRole("link", { name: "Edit" }).click();
@@ -51,8 +51,8 @@ test.describe("Monitor details", () => {
     test("shows the ping chart", async ({ page }) => {
         await createMonitor(page, "Chart Monitor");
 
-        // The chart box is open by default and requests the beats on mount
-        await expect(page.locator(".ping-chart-wrapper canvas")).toBeVisible();
+        // The response time chart is shown by default
+        await expect(page.locator(".carbon-chart")).toBeVisible();
     });
 
     test("pauses and resumes the monitor", async ({ page }) => {
@@ -70,10 +70,12 @@ test.describe("Monitor details", () => {
         const name = "Deletable Monitor";
         await createMonitor(page, name);
 
+        await page.getByRole("button", { name: "More actions" }).click();
         await page.getByRole("button", { name: "Delete" }).click();
         await confirmDialog(page);
         await page.waitForURL(/\/dashboard$/);
 
+        await page.goto("./list");
         const list = page.getByTestId("monitor-list");
         await expect(list).not.toContainText(name);
     });
@@ -81,16 +83,16 @@ test.describe("Monitor details", () => {
         await createMonitor(page, "Clear Events Monitor", "push");
 
         // Send one heartbeat so there is an important event to clear
-        const pushUrl = await page.locator('a[href*="/api/push/"]').first().getAttribute("href");
+        const pushUrl = await page.getByLabel("Push URL").inputValue();
         await page.request.get(pushUrl);
         await page.reload();
-        await expect(page.getByText("No important events")).toBeHidden();
+        await expect(page.getByText("Nothing has happened yet")).toBeHidden();
 
-        await page.getByRole("button", { name: "Clear Data" }).click();
+        await page.getByRole("button", { name: "Clear data" }).click();
         await page.getByRole("button", { name: "Events", exact: true }).click();
         await confirmDialog(page);
 
-        await expect(page.getByText("No important events")).toBeVisible();
+        await expect(page.getByText("Nothing has happened yet")).toBeVisible();
     });
     test("clears the heartbeats shown in the monitor list", async ({ page }) => {
         await createMonitor(page, "Clear Heartbeats Monitor", "push");
@@ -98,19 +100,19 @@ test.describe("Monitor details", () => {
         const monitorID = detailsURL.split("/").pop();
 
         // Send one heartbeat and confirm the list shows it
-        const pushUrl = await page.locator('a[href*="/api/push/"]').first().getAttribute("href");
+        const pushUrl = await page.getByLabel("Push URL").inputValue();
         await page.request.get(pushUrl);
-        await page.goto("./dashboard");
+        await page.goto("./list");
         await expect(page.locator('[aria-label^="Heartbeat history: 1 checks"]')).toBeVisible();
 
         // Clear the heartbeats from the details page
         await page.goto("./dashboard/" + monitorID);
-        await page.getByRole("button", { name: "Clear Data" }).click();
+        await page.getByRole("button", { name: "Clear data" }).click();
         await page.getByRole("button", { name: "Heartbeats", exact: true }).click();
         await confirmDialog(page);
 
         // The list row no longer has heartbeat data
-        await page.goto("./dashboard");
+        await page.goto("./list");
         await expect(page.locator('[aria-label^="Heartbeat history: 0 checks"]')).toBeVisible();
     });
 });

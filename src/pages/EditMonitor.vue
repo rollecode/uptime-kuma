@@ -1,1045 +1,608 @@
 <template>
-    <transition name="slide-fade" appear>
-        <div>
-            <h1 class="mb-3">{{ pageName }}</h1>
-            <form @submit.prevent="submit">
-                <div class="shadow-box shadow-box-with-fixed-bottom-bar">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h2 class="mb-2">{{ $t("General") }}</h2>
+    <div>
+        <h1 class="mb-3">{{ pageName }}</h1>
+        <form @submit.prevent="submit">
+            <div class="shadow-box shadow-box-with-fixed-bottom-bar">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h2 class="mb-2">{{ $t("General") }}</h2>
 
+                        <i18n-t
+                            v-if="monitor.type === 'globalping'"
+                            keypath="GlobalpingMonitorDescription"
+                            tag="p"
+                            class="form-text"
+                        >
+                            <template #accountSettings>
+                                <router-link to="/settings/general">{{ $t("account settings") }}</router-link>
+                            </template>
+                            <template #docs>
+                                <a
+                                    href="https://github.com/jsdelivr/globalping?tab=readme-ov-file#uptime-monitoring-use-cases"
+                                    target="_blank"
+                                >
+                                    {{ $t("documentation") }}
+                                </a>
+                            </template>
+                        </i18n-t>
+
+                        <div class="my-3">
+                            <label for="type" class="form-label">{{ $t("Monitor Type") }}</label>
+                            <select
+                                id="type"
+                                v-model="monitor.type"
+                                class="form-select"
+                                data-testid="monitor-type-select"
+                            >
+                                <!-- Unsorted, since HTTP is commonly used -->
+                                <optgroup :label="$t('General Monitor Type')">
+                                    <option value="http">HTTP(s)</option>
+                                    <option value="keyword">HTTP(s) - {{ $t("Keyword") }}</option>
+                                    <option value="port">TCP Port</option>
+                                    <option value="ping">Ping</option>
+                                    <option value="dns">DNS</option>
+                                    <option value="docker">
+                                        {{ $t("Docker Container") }}
+                                    </option>
+                                    <option
+                                        v-if="
+                                            ['linux', 'win32'].includes($root.info.runtime.platform) &&
+                                            !$root.info.isContainer
+                                        "
+                                        value="system-service"
+                                    >
+                                        {{ $t("systemService") }}
+                                    </option>
+                                    <option value="pm2">
+                                        {{ $t("PM2 Process") }}
+                                    </option>
+                                    <option value="real-browser">
+                                        HTTP(s) - Browser Engine (Chrome/Chromium) (Beta)
+                                    </option>
+                                    <option value="websocket-upgrade">Websocket Upgrade</option>
+                                    <option value="sftp">SFTP</option>
+                                </optgroup>
+
+                                <optgroup :label="$t('monitorTypeSpecial')">
+                                    <option value="group">
+                                        {{ $t("Group") }}
+                                    </option>
+                                </optgroup>
+
+                                <optgroup :label="$t('Passive Monitor Type')">
+                                    <option value="push">Push</option>
+                                    <option value="manual">
+                                        {{ $t("Manual") }}
+                                    </option>
+                                </optgroup>
+
+                                <!-- Should sort from A to Z in this category -->
+                                <optgroup :label="$t('Specific Monitor Type')">
+                                    <option value="globalping">
+                                        {{ $t("Globalping - Access global monitoring probes") }}
+                                    </option>
+                                    <option value="grpc-keyword">gRPC(s) - {{ $t("Keyword") }}</option>
+                                    <option value="json-query">HTTP(s) - {{ $t("Json Query") }}</option>
+                                    <option value="kafka-producer">Kafka Producer</option>
+                                    <option value="mqtt">MQTT</option>
+                                    <option value="ntp">NTP</option>
+                                    <option value="rabbitmq">RabbitMQ</option>
+                                    <option value="sip-options">SIP Options Ping</option>
+                                    <option value="smtp">SMTP</option>
+                                    <option value="snmp">SNMP</option>
+                                    <option v-if="!$root.info.isContainer" value="tailscale-ping">
+                                        Tailscale Ping
+                                    </option>
+                                    <option value="websocket-upgrade">Websocket Upgrade</option>
+                                </optgroup>
+
+                                <!-- Should sort from A to Z in this category -->
+                                <optgroup :label="$t('monitorTypeDatabase')">
+                                    <option value="sqlserver">Microsoft SQL Server</option>
+                                    <option value="mongodb">MongoDB</option>
+                                    <option value="mysql">MySQL/MariaDB</option>
+                                    <option value="oracledb">Oracle Database</option>
+                                    <option value="postgres">PostgreSQL</option>
+                                    <option value="radius">Radius</option>
+                                    <option value="redis">Redis</option>
+                                </optgroup>
+
+                                <!-- Should sort from A to Z in this category -->
+                                <optgroup :label="$t('monitorTypeGameServer')">
+                                    <option value="gamedig">GameDig</option>
+                                    <option value="steam">
+                                        {{ $t("Steam Game Server") }}
+                                    </option>
+                                </optgroup>
+                            </select>
                             <i18n-t
-                                v-if="monitor.type === 'globalping'"
-                                keypath="GlobalpingMonitorDescription"
-                                tag="p"
+                                v-if="monitor.type === 'rabbitmq'"
+                                keypath="rabbitmqHelpText"
+                                tag="div"
                                 class="form-text"
                             >
-                                <template #accountSettings>
-                                    <router-link to="/settings/general">{{ $t("account settings") }}</router-link>
-                                </template>
-                                <template #docs>
+                                <template #rabitmq_documentation>
                                     <a
-                                        href="https://github.com/jsdelivr/globalping?tab=readme-ov-file#uptime-monitoring-use-cases"
+                                        href="https://www.rabbitmq.com/docs/manage-rabbitmq"
                                         target="_blank"
+                                        rel="noopener noreferrer"
                                     >
-                                        {{ $t("documentation") }}
+                                        RabbitMQ documentation
                                     </a>
                                 </template>
                             </i18n-t>
+                        </div>
 
+                        <div v-if="monitor.type === 'tailscale-ping'" class="alert alert-warning" role="alert">
+                            {{ $t("tailscalePingWarning") }}
+                        </div>
+
+                        <div v-if="monitor.type === 'globalping'" class="my-3">
+                            <label for="subtype" class="form-label">{{ $t("Monitor Subtype") }}</label>
+                            <select
+                                id="subtype"
+                                v-model="monitor.subtype"
+                                class="form-select"
+                                data-testid="monitor-subtype-select"
+                            >
+                                <option value="ping">Ping</option>
+                                <option value="http">HTTP(s)</option>
+                                <option value="dns">DNS</option>
+                            </select>
+                        </div>
+
+                        <div
+                            v-if="monitor.type === 'sip-options' && !$root.info.isContainer"
+                            class="alert alert-warning"
+                            role="alert"
+                        >
+                            {{ $t("sipsakPingWarning") }}
+                        </div>
+
+                        <!-- Friendly Name -->
+                        <div class="my-3">
+                            <label for="name" class="form-label">{{ $t("Friendly Name") }}</label>
+                            <input
+                                id="name"
+                                v-model="monitor.name"
+                                type="text"
+                                class="form-control"
+                                data-testid="friendly-name-input"
+                                :placeholder="defaultFriendlyName"
+                            />
+                        </div>
+
+                        <!-- Manual Status switcher -->
+                        <div v-if="monitor.type === 'manual'" class="mb-3">
+                            <div class="btn-group w-100 mb-3">
+                                <button class="btn btn-success" @click="monitor.manual_status = 1">
+                                    <i class="fas fa-check"></i>
+                                    {{ $t("Up") }}
+                                </button>
+                                <button class="btn btn-danger" @click="monitor.manual_status = 0">
+                                    <i class="fas fa-times"></i>
+                                    {{ $t("Down") }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- URL -->
+                        <div
+                            v-if="
+                                monitor.type === 'websocket-upgrade' ||
+                                monitor.type === 'http' ||
+                                monitor.type === 'keyword' ||
+                                monitor.type === 'json-query' ||
+                                monitor.type === 'real-browser'
+                            "
+                            class="my-3"
+                        >
+                            <label for="url" class="form-label">{{ $t("URL") }}</label>
+                            <input
+                                id="url"
+                                v-model="monitor.url"
+                                type="url"
+                                class="form-control"
+                                :pattern="monitor.type !== 'websocket-upgrade' ? 'https?://.+' : 'wss?://.+'"
+                                required
+                                data-testid="url-input"
+                            />
+                        </div>
+
+                        <template v-if="monitor.type === 'websocket-upgrade'">
+                            <h2 class="mt-5 mb-2">{{ $t("WebSocket Options") }}</h2>
+
+                            <!-- Websocket Subprotocol Docs: https://www.iana.org/assignments/websocket/websocket.xml#subprotocol-name -->
                             <div class="my-3">
-                                <label for="type" class="form-label">{{ $t("Monitor Type") }}</label>
-                                <select
-                                    id="type"
-                                    v-model="monitor.type"
-                                    class="form-select"
-                                    data-testid="monitor-type-select"
-                                >
-                                    <!-- Unsorted, since HTTP is commonly used -->
-                                    <optgroup :label="$t('General Monitor Type')">
-                                        <option value="http">HTTP(s)</option>
-                                        <option value="keyword">HTTP(s) - {{ $t("Keyword") }}</option>
-                                        <option value="port">TCP Port</option>
-                                        <option value="ping">Ping</option>
-                                        <option value="dns">DNS</option>
-                                        <option value="docker">
-                                            {{ $t("Docker Container") }}
-                                        </option>
-                                        <option
-                                            v-if="
-                                                ['linux', 'win32'].includes($root.info.runtime.platform) &&
-                                                !$root.info.isContainer
-                                            "
-                                            value="system-service"
-                                        >
-                                            {{ $t("systemService") }}
-                                        </option>
-                                        <option value="pm2">
-                                            {{ $t("PM2 Process") }}
-                                        </option>
-                                        <option value="real-browser">
-                                            HTTP(s) - Browser Engine (Chrome/Chromium) (Beta)
-                                        </option>
-                                        <option value="websocket-upgrade">Websocket Upgrade</option>
-                                        <option value="sftp">SFTP</option>
-                                    </optgroup>
-
-                                    <optgroup :label="$t('monitorTypeSpecial')">
-                                        <option value="group">
-                                            {{ $t("Group") }}
-                                        </option>
-                                    </optgroup>
-
-                                    <optgroup :label="$t('Passive Monitor Type')">
-                                        <option value="push">Push</option>
-                                        <option value="manual">
-                                            {{ $t("Manual") }}
-                                        </option>
-                                    </optgroup>
-
-                                    <!-- Should sort from A to Z in this category -->
-                                    <optgroup :label="$t('Specific Monitor Type')">
-                                        <option value="globalping">
-                                            {{ $t("Globalping - Access global monitoring probes") }}
-                                        </option>
-                                        <option value="grpc-keyword">gRPC(s) - {{ $t("Keyword") }}</option>
-                                        <option value="json-query">HTTP(s) - {{ $t("Json Query") }}</option>
-                                        <option value="kafka-producer">Kafka Producer</option>
-                                        <option value="mqtt">MQTT</option>
-                                        <option value="ntp">NTP</option>
-                                        <option value="rabbitmq">RabbitMQ</option>
-                                        <option value="sip-options">SIP Options Ping</option>
-                                        <option value="smtp">SMTP</option>
-                                        <option value="snmp">SNMP</option>
-                                        <option v-if="!$root.info.isContainer" value="tailscale-ping">
-                                            Tailscale Ping
-                                        </option>
-                                        <option value="websocket-upgrade">Websocket Upgrade</option>
-                                    </optgroup>
-
-                                    <!-- Should sort from A to Z in this category -->
-                                    <optgroup :label="$t('monitorTypeDatabase')">
-                                        <option value="sqlserver">Microsoft SQL Server</option>
-                                        <option value="mongodb">MongoDB</option>
-                                        <option value="mysql">MySQL/MariaDB</option>
-                                        <option value="oracledb">Oracle Database</option>
-                                        <option value="postgres">PostgreSQL</option>
-                                        <option value="radius">Radius</option>
-                                        <option value="redis">Redis</option>
-                                    </optgroup>
-
-                                    <!-- Should sort from A to Z in this category -->
-                                    <optgroup :label="$t('monitorTypeGameServer')">
-                                        <option value="gamedig">GameDig</option>
-                                        <option value="steam">
-                                            {{ $t("Steam Game Server") }}
-                                        </option>
-                                    </optgroup>
-                                </select>
-                                <i18n-t
-                                    v-if="monitor.type === 'rabbitmq'"
-                                    keypath="rabbitmqHelpText"
-                                    tag="div"
-                                    class="form-text"
-                                >
-                                    <template #rabitmq_documentation>
+                                <label for="ws_subprotocol" class="form-label">{{ $t("Subprotocol(s)") }}</label>
+                                <input
+                                    id="ws_subprotocol"
+                                    v-model="monitor.wsSubprotocol"
+                                    type="text"
+                                    class="form-control"
+                                    placeholder="mielecloudconnect,soap"
+                                />
+                                <i18n-t tag="div" class="form-text" keypath="wsSubprotocolDescription">
+                                    <template #documentation>
                                         <a
-                                            href="https://www.rabbitmq.com/docs/manage-rabbitmq"
+                                            href="https://www.iana.org/assignments/websocket/websocket.xml#subprotocol-name"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                         >
-                                            RabbitMQ documentation
+                                            {{ $t("documentationOf", ["IANA"]) }}
                                         </a>
                                     </template>
                                 </i18n-t>
                             </div>
 
-                            <div v-if="monitor.type === 'tailscale-ping'" class="alert alert-warning" role="alert">
-                                {{ $t("tailscalePingWarning") }}
-                            </div>
-
-                            <div v-if="monitor.type === 'globalping'" class="my-3">
-                                <label for="subtype" class="form-label">{{ $t("Monitor Subtype") }}</label>
-                                <select
-                                    id="subtype"
-                                    v-model="monitor.subtype"
-                                    class="form-select"
-                                    data-testid="monitor-subtype-select"
-                                >
-                                    <option value="ping">Ping</option>
-                                    <option value="http">HTTP(s)</option>
-                                    <option value="dns">DNS</option>
-                                </select>
-                            </div>
-
-                            <div
-                                v-if="monitor.type === 'sip-options' && !$root.info.isContainer"
-                                class="alert alert-warning"
-                                role="alert"
-                            >
-                                {{ $t("sipsakPingWarning") }}
-                            </div>
-
-                            <!-- Friendly Name -->
+                            <!-- Custom Headers -->
                             <div class="my-3">
-                                <label for="name" class="form-label">{{ $t("Friendly Name") }}</label>
-                                <input
-                                    id="name"
-                                    v-model="monitor.name"
-                                    type="text"
+                                <label for="ws-headers" class="form-label">{{ $t("Headers") }}</label>
+                                <textarea
+                                    id="ws-headers"
+                                    v-model="monitor.headers"
                                     class="form-control"
-                                    data-testid="friendly-name-input"
-                                    :placeholder="defaultFriendlyName"
-                                />
+                                    :placeholder="headersPlaceholder"
+                                ></textarea>
                             </div>
+                        </template>
 
-                            <!-- Manual Status switcher -->
-                            <div v-if="monitor.type === 'manual'" class="mb-3">
-                                <div class="btn-group w-100 mb-3">
-                                    <button class="btn btn-success" @click="monitor.manual_status = 1">
-                                        <i class="fas fa-check"></i>
-                                        {{ $t("Up") }}
-                                    </button>
-                                    <button class="btn btn-danger" @click="monitor.manual_status = 0">
-                                        <i class="fas fa-times"></i>
-                                        {{ $t("Down") }}
-                                    </button>
-                                </div>
+                        <!-- gRPC URL -->
+                        <div v-if="monitor.type === 'grpc-keyword'" class="my-3">
+                            <label for="grpc-url" class="form-label">{{ $t("URL") }}</label>
+                            <input id="grpc-url" v-model="monitor.grpcUrl" type="text" class="form-control" required />
+                        </div>
+
+                        <!-- Push URL -->
+                        <div v-if="monitor.type === 'push'" class="my-3">
+                            <label for="push-url" class="form-label">{{ $t("PushUrl") }}</label>
+                            <CopyableInput id="push-url" v-model="pushURL" type="url" disabled="disabled" />
+                            <div class="form-text">
+                                {{ $t("needPushEvery", [monitor.interval]) }}
+                                <br />
+                                {{ $t("pushOptionalParams", ["status, msg, ping"]) }}
                             </div>
+                            <button class="btn btn-primary" type="button" @click="resetToken">
+                                {{ $t("Reset Token") }}
+                            </button>
+                        </div>
 
-                            <!-- URL -->
-                            <div
-                                v-if="
-                                    monitor.type === 'websocket-upgrade' ||
-                                    monitor.type === 'http' ||
-                                    monitor.type === 'keyword' ||
-                                    monitor.type === 'json-query' ||
-                                    monitor.type === 'real-browser'
-                                "
-                                class="my-3"
-                            >
-                                <label for="url" class="form-label">{{ $t("URL") }}</label>
+                        <!-- Keyword -->
+                        <div v-if="monitor.type === 'keyword' || monitor.type === 'grpc-keyword'" class="my-3">
+                            <label for="keyword" class="form-label">{{ $t("Keyword") }}</label>
+                            <input id="keyword" v-model="monitor.keyword" type="text" class="form-control" required />
+                            <div class="form-text">
+                                {{ $t("keywordDescription") }}
+                            </div>
+                        </div>
+
+                        <!-- Invert keyword -->
+                        <div
+                            v-if="monitor.type === 'keyword' || monitor.type === 'grpc-keyword'"
+                            class="my-3 form-check"
+                        >
+                            <input
+                                id="invert-keyword"
+                                v-model="monitor.invertKeyword"
+                                class="form-check-input"
+                                type="checkbox"
+                            />
+                            <label class="form-check-label" for="invert-keyword">
+                                {{ $t("Invert Keyword") }}
+                            </label>
+                            <div class="form-text">
+                                {{ $t("invertKeywordDescription") }}
+                            </div>
+                        </div>
+
+                        <!-- Remote Browser -->
+                        <div v-if="monitor.type === 'real-browser'" class="my-3">
+                            <!-- Toggle -->
+                            <div class="my-3 form-check">
                                 <input
-                                    id="url"
-                                    v-model="monitor.url"
-                                    type="url"
-                                    class="form-control"
-                                    :pattern="monitor.type !== 'websocket-upgrade' ? 'https?://.+' : 'wss?://.+'"
-                                    required
-                                    data-testid="url-input"
-                                />
-                            </div>
-
-                            <template v-if="monitor.type === 'websocket-upgrade'">
-                                <h2 class="mt-5 mb-2">{{ $t("WebSocket Options") }}</h2>
-
-                                <!-- Websocket Subprotocol Docs: https://www.iana.org/assignments/websocket/websocket.xml#subprotocol-name -->
-                                <div class="my-3">
-                                    <label for="ws_subprotocol" class="form-label">{{ $t("Subprotocol(s)") }}</label>
-                                    <input
-                                        id="ws_subprotocol"
-                                        v-model="monitor.wsSubprotocol"
-                                        type="text"
-                                        class="form-control"
-                                        placeholder="mielecloudconnect,soap"
-                                    />
-                                    <i18n-t tag="div" class="form-text" keypath="wsSubprotocolDescription">
-                                        <template #documentation>
-                                            <a
-                                                href="https://www.iana.org/assignments/websocket/websocket.xml#subprotocol-name"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                {{ $t("documentationOf", ["IANA"]) }}
-                                            </a>
-                                        </template>
-                                    </i18n-t>
-                                </div>
-
-                                <!-- Custom Headers -->
-                                <div class="my-3">
-                                    <label for="ws-headers" class="form-label">{{ $t("Headers") }}</label>
-                                    <textarea
-                                        id="ws-headers"
-                                        v-model="monitor.headers"
-                                        class="form-control"
-                                        :placeholder="headersPlaceholder"
-                                    ></textarea>
-                                </div>
-                            </template>
-
-                            <!-- gRPC URL -->
-                            <div v-if="monitor.type === 'grpc-keyword'" class="my-3">
-                                <label for="grpc-url" class="form-label">{{ $t("URL") }}</label>
-                                <input
-                                    id="grpc-url"
-                                    v-model="monitor.grpcUrl"
-                                    type="text"
-                                    class="form-control"
-                                    required
-                                />
-                            </div>
-
-                            <!-- Push URL -->
-                            <div v-if="monitor.type === 'push'" class="my-3">
-                                <label for="push-url" class="form-label">{{ $t("PushUrl") }}</label>
-                                <CopyableInput id="push-url" v-model="pushURL" type="url" disabled="disabled" />
-                                <div class="form-text">
-                                    {{ $t("needPushEvery", [monitor.interval]) }}
-                                    <br />
-                                    {{ $t("pushOptionalParams", ["status, msg, ping"]) }}
-                                </div>
-                                <button class="btn btn-primary" type="button" @click="resetToken">
-                                    {{ $t("Reset Token") }}
-                                </button>
-                            </div>
-
-                            <!-- Keyword -->
-                            <div v-if="monitor.type === 'keyword' || monitor.type === 'grpc-keyword'" class="my-3">
-                                <label for="keyword" class="form-label">{{ $t("Keyword") }}</label>
-                                <input
-                                    id="keyword"
-                                    v-model="monitor.keyword"
-                                    type="text"
-                                    class="form-control"
-                                    required
-                                />
-                                <div class="form-text">
-                                    {{ $t("keywordDescription") }}
-                                </div>
-                            </div>
-
-                            <!-- Invert keyword -->
-                            <div
-                                v-if="monitor.type === 'keyword' || monitor.type === 'grpc-keyword'"
-                                class="my-3 form-check"
-                            >
-                                <input
-                                    id="invert-keyword"
-                                    v-model="monitor.invertKeyword"
+                                    id="toggle"
+                                    v-model="remoteBrowsersToggle"
                                     class="form-check-input"
                                     type="checkbox"
                                 />
-                                <label class="form-check-label" for="invert-keyword">
-                                    {{ $t("Invert Keyword") }}
+                                <label class="form-check-label" for="toggle">
+                                    {{ $t("useRemoteBrowser") }}
                                 </label>
                                 <div class="form-text">
-                                    {{ $t("invertKeywordDescription") }}
+                                    {{ $t("remoteBrowserToggle") }}
                                 </div>
                             </div>
 
-                            <!-- Remote Browser -->
-                            <div v-if="monitor.type === 'real-browser'" class="my-3">
-                                <!-- Toggle -->
-                                <div class="my-3 form-check">
-                                    <input
-                                        id="toggle"
-                                        v-model="remoteBrowsersToggle"
-                                        class="form-check-input"
-                                        type="checkbox"
-                                    />
-                                    <label class="form-check-label" for="toggle">
-                                        {{ $t("useRemoteBrowser") }}
-                                    </label>
-                                    <div class="form-text">
-                                        {{ $t("remoteBrowserToggle") }}
-                                    </div>
-                                </div>
+                            <div v-if="remoteBrowsersToggle">
+                                <label for="remote-browser" class="form-label">{{ $t("Remote Browser") }}</label>
+                                <ActionSelect
+                                    v-model="monitor.remote_browser"
+                                    :options="remoteBrowsersOptions"
+                                    icon="plus"
+                                    :action="() => $refs.remoteBrowserDialog.show()"
+                                />
+                            </div>
+                        </div>
 
-                                <div v-if="remoteBrowsersToggle">
-                                    <label for="remote-browser" class="form-label">{{ $t("Remote Browser") }}</label>
-                                    <ActionSelect
-                                        v-model="monitor.remote_browser"
-                                        :options="remoteBrowsersOptions"
-                                        icon="plus"
-                                        :action="() => $refs.remoteBrowserDialog.show()"
-                                    />
+                        <!-- Game -->
+                        <!-- GameDig only -->
+                        <div v-if="monitor.type === 'gamedig'" class="my-3">
+                            <label for="game" class="form-label">{{ $t("Game") }}</label>
+                            <select id="game" v-model="monitor.game" class="form-select" required>
+                                <option v-for="game in gameList" :key="game.keys[0]" :value="game.keys[0]">
+                                    {{ game.pretty }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <template v-if="monitor.type === 'kafka-producer'">
+                            <!-- Kafka Brokers List -->
+                            <div class="my-3">
+                                <label for="kafkaProducerBrokers" class="form-label">
+                                    {{ $t("Kafka Brokers") }}
+                                </label>
+                                <VueMultiselect
+                                    id="kafkaProducerBrokers"
+                                    v-model="monitor.kafkaProducerBrokers"
+                                    :multiple="true"
+                                    :options="[]"
+                                    :placeholder="$t('Enter the list of brokers')"
+                                    :tag-placeholder="$t('Press Enter to add broker')"
+                                    :max-height="500"
+                                    :taggable="true"
+                                    :show-no-options="false"
+                                    :close-on-select="false"
+                                    :clear-on-select="false"
+                                    :preserve-search="false"
+                                    :preselect-first="false"
+                                    @tag="addKafkaProducerBroker"
+                                ></VueMultiselect>
+                            </div>
+
+                            <!-- Kafka Topic Name -->
+                            <div class="my-3">
+                                <label for="kafkaProducerTopic" class="form-label">
+                                    {{ $t("Kafka Topic Name") }}
+                                </label>
+                                <input
+                                    id="kafkaProducerTopic"
+                                    v-model="monitor.kafkaProducerTopic"
+                                    type="text"
+                                    class="form-control"
+                                    required
+                                />
+                            </div>
+
+                            <!-- Kafka Producer Message -->
+                            <div class="my-3">
+                                <label for="kafkaProducerMessage" class="form-label">
+                                    {{ $t("Kafka Producer Message") }}
+                                </label>
+                                <input
+                                    id="kafkaProducerMessage"
+                                    v-model="monitor.kafkaProducerMessage"
+                                    type="text"
+                                    class="form-control"
+                                    required
+                                />
+                            </div>
+
+                            <!-- Kafka SSL -->
+                            <div class="my-3 form-check">
+                                <input
+                                    id="kafkaProducerSsl"
+                                    v-model="monitor.kafkaProducerSsl"
+                                    class="form-check-input"
+                                    type="checkbox"
+                                />
+                                <label class="form-check-label" for="kafkaProducerSsl">
+                                    {{ $t("Enable Kafka SSL") }}
+                                </label>
+                            </div>
+
+                            <!-- Kafka SSL -->
+                            <div class="my-3 form-check">
+                                <input
+                                    id="kafkaProducerAllowAutoTopicCreation"
+                                    v-model="monitor.kafkaProducerAllowAutoTopicCreation"
+                                    class="form-check-input"
+                                    type="checkbox"
+                                />
+                                <label class="form-check-label" for="kafkaProducerAllowAutoTopicCreation">
+                                    {{ $t("Enable Kafka Producer Auto Topic Creation") }}
+                                </label>
+                            </div>
+                        </template>
+
+                        <template v-if="monitor.type === 'rabbitmq'">
+                            <!-- RabbitMQ Nodes List -->
+                            <div class="my-3">
+                                <label for="rabbitmqNodes" class="form-label">{{ $t("RabbitMQ Nodes") }}</label>
+                                <VueMultiselect
+                                    id="rabbitmqNodes"
+                                    v-model="monitor.rabbitmqNodes"
+                                    :required="true"
+                                    :multiple="true"
+                                    :options="[]"
+                                    :placeholder="$t('Enter the list of nodes')"
+                                    :tag-placeholder="$t('Press Enter to add node')"
+                                    :max-height="500"
+                                    :taggable="true"
+                                    :show-no-options="false"
+                                    :close-on-select="false"
+                                    :clear-on-select="false"
+                                    :preserve-search="false"
+                                    :preselect-first="false"
+                                    @tag="addRabbitmqNode"
+                                ></VueMultiselect>
+                                <div class="form-text">
+                                    {{ $t("rabbitmqNodesDescription", ["https://node1.rabbitmq.com:15672"]) }}
                                 </div>
                             </div>
 
-                            <!-- Game -->
-                            <!-- GameDig only -->
-                            <div v-if="monitor.type === 'gamedig'" class="my-3">
-                                <label for="game" class="form-label">{{ $t("Game") }}</label>
-                                <select id="game" v-model="monitor.game" class="form-select" required>
-                                    <option v-for="game in gameList" :key="game.keys[0]" :value="game.keys[0]">
-                                        {{ game.pretty }}
-                                    </option>
-                                </select>
+                            <div class="my-3">
+                                <label for="rabbitmqUsername" class="form-label">
+                                    RabbitMQ {{ $t("RabbitMQ Username") }}
+                                </label>
+                                <input
+                                    id="rabbitmqUsername"
+                                    v-model="monitor.rabbitmqUsername"
+                                    type="text"
+                                    required
+                                    class="form-control"
+                                />
                             </div>
 
-                            <template v-if="monitor.type === 'kafka-producer'">
-                                <!-- Kafka Brokers List -->
-                                <div class="my-3">
-                                    <label for="kafkaProducerBrokers" class="form-label">
-                                        {{ $t("Kafka Brokers") }}
-                                    </label>
-                                    <VueMultiselect
-                                        id="kafkaProducerBrokers"
-                                        v-model="monitor.kafkaProducerBrokers"
-                                        :multiple="true"
-                                        :options="[]"
-                                        :placeholder="$t('Enter the list of brokers')"
-                                        :tag-placeholder="$t('Press Enter to add broker')"
-                                        :max-height="500"
-                                        :taggable="true"
-                                        :show-no-options="false"
-                                        :close-on-select="false"
-                                        :clear-on-select="false"
-                                        :preserve-search="false"
-                                        :preselect-first="false"
-                                        @tag="addKafkaProducerBroker"
-                                    ></VueMultiselect>
-                                </div>
+                            <div class="my-3">
+                                <label for="rabbitmqPassword" class="form-label">
+                                    {{ $t("RabbitMQ Password") }}
+                                </label>
+                                <HiddenInput
+                                    id="rabbitmqPassword"
+                                    v-model="monitor.rabbitmqPassword"
+                                    autocomplete="false"
+                                    required="true"
+                                ></HiddenInput>
+                            </div>
+                        </template>
 
-                                <!-- Kafka Topic Name -->
-                                <div class="my-3">
-                                    <label for="kafkaProducerTopic" class="form-label">
-                                        {{ $t("Kafka Topic Name") }}
-                                    </label>
-                                    <input
-                                        id="kafkaProducerTopic"
-                                        v-model="monitor.kafkaProducerTopic"
-                                        type="text"
-                                        class="form-control"
-                                        required
-                                    />
-                                </div>
+                        <!-- Hostname -->
+                        <!-- TCP Port / Ping / DNS / Steam / MQTT / Radius / Tailscale Ping / SNMP / SMTP / SIP Options / NTP only -->
+                        <div
+                            v-if="
+                                monitor.type === 'port' ||
+                                monitor.type === 'ping' ||
+                                monitor.type === 'dns' ||
+                                monitor.type === 'steam' ||
+                                monitor.type === 'gamedig' ||
+                                monitor.type === 'mqtt' ||
+                                monitor.type === 'radius' ||
+                                monitor.type === 'tailscale-ping' ||
+                                monitor.type === 'smtp' ||
+                                monitor.type === 'snmp' ||
+                                monitor.type === 'sip-options' ||
+                                monitor.type === 'sftp' ||
+                                monitor.type === 'ntp'
+                            "
+                            class="my-3"
+                        >
+                            <label for="hostname" class="form-label">{{ $t("Hostname") }}</label>
+                            <input
+                                id="hostname"
+                                v-model="monitor.hostname"
+                                type="text"
+                                class="form-control"
+                                required
+                                data-testid="hostname-input"
+                            />
+                            <div v-if="monitor.type === 'mqtt'" class="form-text">
+                                <i18n-t tag="p" keypath="mqttHostnameTip">
+                                    <template #hostnameFormat>
+                                        <code>[mqtt,mqtts,ws,wss]://hostname</code>
+                                    </template>
+                                </i18n-t>
+                            </div>
+                        </div>
 
-                                <!-- Kafka Producer Message -->
-                                <div class="my-3">
-                                    <label for="kafkaProducerMessage" class="form-label">
-                                        {{ $t("Kafka Producer Message") }}
-                                    </label>
-                                    <input
-                                        id="kafkaProducerMessage"
-                                        v-model="monitor.kafkaProducerMessage"
-                                        type="text"
-                                        class="form-control"
-                                        required
-                                    />
-                                </div>
-
-                                <!-- Kafka SSL -->
-                                <div class="my-3 form-check">
-                                    <input
-                                        id="kafkaProducerSsl"
-                                        v-model="monitor.kafkaProducerSsl"
-                                        class="form-check-input"
-                                        type="checkbox"
-                                    />
-                                    <label class="form-check-label" for="kafkaProducerSsl">
-                                        {{ $t("Enable Kafka SSL") }}
-                                    </label>
-                                </div>
-
-                                <!-- Kafka SSL -->
-                                <div class="my-3 form-check">
-                                    <input
-                                        id="kafkaProducerAllowAutoTopicCreation"
-                                        v-model="monitor.kafkaProducerAllowAutoTopicCreation"
-                                        class="form-check-input"
-                                        type="checkbox"
-                                    />
-                                    <label class="form-check-label" for="kafkaProducerAllowAutoTopicCreation">
-                                        {{ $t("Enable Kafka Producer Auto Topic Creation") }}
-                                    </label>
-                                </div>
-                            </template>
-
-                            <template v-if="monitor.type === 'rabbitmq'">
-                                <!-- RabbitMQ Nodes List -->
-                                <div class="my-3">
-                                    <label for="rabbitmqNodes" class="form-label">{{ $t("RabbitMQ Nodes") }}</label>
-                                    <VueMultiselect
-                                        id="rabbitmqNodes"
-                                        v-model="monitor.rabbitmqNodes"
-                                        :required="true"
-                                        :multiple="true"
-                                        :options="[]"
-                                        :placeholder="$t('Enter the list of nodes')"
-                                        :tag-placeholder="$t('Press Enter to add node')"
-                                        :max-height="500"
-                                        :taggable="true"
-                                        :show-no-options="false"
-                                        :close-on-select="false"
-                                        :clear-on-select="false"
-                                        :preserve-search="false"
-                                        :preselect-first="false"
-                                        @tag="addRabbitmqNode"
-                                    ></VueMultiselect>
-                                    <div class="form-text">
-                                        {{ $t("rabbitmqNodesDescription", ["https://node1.rabbitmq.com:15672"]) }}
-                                    </div>
-                                </div>
-
-                                <div class="my-3">
-                                    <label for="rabbitmqUsername" class="form-label">
-                                        RabbitMQ {{ $t("RabbitMQ Username") }}
-                                    </label>
-                                    <input
-                                        id="rabbitmqUsername"
-                                        v-model="monitor.rabbitmqUsername"
-                                        type="text"
-                                        required
-                                        class="form-control"
-                                    />
-                                </div>
-
-                                <div class="my-3">
-                                    <label for="rabbitmqPassword" class="form-label">
-                                        {{ $t("RabbitMQ Password") }}
-                                    </label>
-                                    <HiddenInput
-                                        id="rabbitmqPassword"
-                                        v-model="monitor.rabbitmqPassword"
-                                        autocomplete="false"
-                                        required="true"
-                                    ></HiddenInput>
-                                </div>
-                            </template>
-
+                        <!-- Globalping -->
+                        <template v-if="monitor.type === 'globalping'">
                             <!-- Hostname -->
-                            <!-- TCP Port / Ping / DNS / Steam / MQTT / Radius / Tailscale Ping / SNMP / SMTP / SIP Options / NTP only -->
-                            <div
-                                v-if="
-                                    monitor.type === 'port' ||
-                                    monitor.type === 'ping' ||
-                                    monitor.type === 'dns' ||
-                                    monitor.type === 'steam' ||
-                                    monitor.type === 'gamedig' ||
-                                    monitor.type === 'mqtt' ||
-                                    monitor.type === 'radius' ||
-                                    monitor.type === 'tailscale-ping' ||
-                                    monitor.type === 'smtp' ||
-                                    monitor.type === 'snmp' ||
-                                    monitor.type === 'sip-options' ||
-                                    monitor.type === 'sftp' ||
-                                    monitor.type === 'ntp'
-                                "
-                                class="my-3"
-                            >
+                            <div v-if="monitor.subtype === 'ping' || monitor.subtype === 'dns'" class="my-3">
                                 <label for="hostname" class="form-label">{{ $t("Hostname") }}</label>
                                 <input
                                     id="hostname"
                                     v-model="monitor.hostname"
                                     type="text"
                                     class="form-control"
+                                    :pattern="ipOrHostnameRegexPattern"
                                     required
                                     data-testid="hostname-input"
                                 />
-                                <div v-if="monitor.type === 'mqtt'" class="form-text">
-                                    <i18n-t tag="p" keypath="mqttHostnameTip">
-                                        <template #hostnameFormat>
-                                            <code>[mqtt,mqtts,ws,wss]://hostname</code>
-                                        </template>
-                                    </i18n-t>
+                                <div class="form-text">
+                                    {{ $t("GlobalpingHostname") }}
                                 </div>
                             </div>
 
-                            <!-- Globalping -->
-                            <template v-if="monitor.type === 'globalping'">
-                                <!-- Hostname -->
-                                <div v-if="monitor.subtype === 'ping' || monitor.subtype === 'dns'" class="my-3">
-                                    <label for="hostname" class="form-label">{{ $t("Hostname") }}</label>
-                                    <input
-                                        id="hostname"
-                                        v-model="monitor.hostname"
-                                        type="text"
-                                        class="form-control"
-                                        :pattern="ipOrHostnameRegexPattern"
-                                        required
-                                        data-testid="hostname-input"
-                                    />
-                                    <div class="form-text">
-                                        {{ $t("GlobalpingHostname") }}
-                                    </div>
-                                </div>
-
-                                <div v-if="monitor.subtype === 'http'" class="my-3">
-                                    <label for="url" class="form-label">{{ $t("URL") }}</label>
-                                    <input
-                                        id="url"
-                                        v-model="monitor.url"
-                                        type="url"
-                                        class="form-control"
-                                        pattern="https?://.+"
-                                        required
-                                        data-testid="url-input"
-                                    />
-                                    <div class="form-text">
-                                        {{ $t("GlobalpingHostname") }}
-                                    </div>
-                                </div>
-
-                                <!-- Location -->
-                                <div class="my-3">
-                                    <label for="location" class="form-label">{{ $t("Location") }}</label>
-                                    <input
-                                        id="location"
-                                        v-model="monitor.location"
-                                        type="text"
-                                        class="form-control"
-                                        required
-                                    />
-                                    <i18n-t keypath="GlobalpingLocationDescription" tag="div" class="form-text">
-                                        <template #plus>
-                                            <code>+</code>
-                                        </template>
-                                        <template #amazonPlusGermany>
-                                            <code>amazon+germany</code>
-                                        </template>
-                                        <template #comcastPlusCalifornia>
-                                            <code>comcast+california</code>
-                                        </template>
-                                        <template #datacenter>
-                                            <code>+datacenter</code>
-                                        </template>
-                                        <template #fullDocs>
-                                            <a
-                                                href="https://github.com/jsdelivr/globalping?tab=readme-ov-file#basic-location-targeting-"
-                                                target="_blank"
-                                            >
-                                                {{ $t("GlobalpingLocationDocs") }}
-                                            </a>
-                                        </template>
-                                    </i18n-t>
-                                </div>
-
-                                <!-- IP Family -->
-                                <div class="my-3">
-                                    <label for="ipFamily" class="form-label">{{ $t("Ip Family") }}</label>
-                                    <select id="ipFamily" v-model="monitor.ipFamily" class="form-select">
-                                        <option :value="null">{{ $t("auto-select") }}</option>
-                                        <option value="ipv4">IPv4</option>
-                                        <option value="ipv6">IPv6</option>
-                                    </select>
-                                    <div class="form-text">
-                                        {{ $t("GlobalpingIpFamilyInfo") }}
-                                    </div>
-                                </div>
-
-                                <div v-if="monitor.subtype === 'http' || monitor.subtype === 'dns'" class="my-3">
-                                    <label for="dns_resolve_server" class="form-label">
-                                        {{ $t("Resolver Server") }}
-                                    </label>
-                                    <input
-                                        id="dns_resolve_server"
-                                        v-model="monitor.dns_resolve_server"
-                                        type="text"
-                                        class="form-control"
-                                    />
-                                    <div class="form-text">
-                                        {{ $t("GlobalpingResolverInfo") }}
-                                    </div>
-                                </div>
-
-                                <!-- DNS -->
-                                <template v-if="monitor.subtype === 'dns'">
-                                    <!-- Port -->
-                                    <div class="my-3">
-                                        <label for="port" class="form-label">{{ $t("Port") }}</label>
-                                        <input
-                                            id="port"
-                                            v-model="monitor.port"
-                                            type="number"
-                                            class="form-control"
-                                            required
-                                            min="0"
-                                            max="65535"
-                                            step="1"
-                                            value="53"
-                                        />
-                                        <div class="form-text">
-                                            {{ $t("dnsPortDescription") }}
-                                        </div>
-                                    </div>
-
-                                    <div class="my-3">
-                                        <label for="dns_resolve_type" class="form-label">
-                                            {{ $t("Resource Record Type") }}
-                                        </label>
-
-                                        <!-- :allow-empty="false" is not working, set a default value instead https://github.com/shentao/vue-multiselect/issues/336   -->
-                                        <VueMultiselect
-                                            id="dns_resolve_type"
-                                            v-model="monitor.dns_resolve_type"
-                                            :options="globalpingdnsresolvetypeoptions"
-                                            :multiple="false"
-                                            :close-on-select="true"
-                                            :clear-on-select="false"
-                                            :preserve-search="false"
-                                            :placeholder="$t('Pick a RR-Type...')"
-                                            :preselect-first="false"
-                                            :max-height="500"
-                                            :taggable="false"
-                                            data-testid="resolve-type-select"
-                                        ></VueMultiselect>
-
-                                        <div class="form-text">
-                                            {{ $t("rrtypeDescription") }}
-                                        </div>
-                                    </div>
-
-                                    <div class="my-3">
-                                        <label for="keyword" class="form-label">{{ $t("RecordMatch") }}</label>
-                                        <input
-                                            id="keyword"
-                                            v-model="monitor.keyword"
-                                            type="text"
-                                            class="form-control"
-                                        />
-                                        <div class="form-text">
-                                            {{ $t("RegexMatch") }}
-                                        </div>
-                                    </div>
-                                </template>
-
-                                <!-- Protocol -->
-                                <div class="my-3">
-                                    <label for="protocol" class="form-label">{{ $t("Protocol") }}</label>
-                                    <select id="protocol" v-model="monitor.protocol" class="form-select" required>
-                                        <template v-if="monitor.subtype === 'ping'">
-                                            <option value="ICMP">ICMP</option>
-                                            <option value="TCP">TCP</option>
-                                        </template>
-                                        <template v-else-if="monitor.subtype === 'http'">
-                                            <option :value="null">{{ $t("auto-select") }}</option>
-                                            <option value="HTTP2">HTTP2</option>
-                                        </template>
-                                        <template v-else-if="monitor.subtype === 'dns'">
-                                            <option value="UDP">UDP</option>
-                                            <option value="TCP">TCP</option>
-                                        </template>
-                                    </select>
-                                </div>
-                            </template>
-
-                            <!-- Port -->
-                            <!-- For TCP Port / Steam / MQTT / Radius Type / SNMP / SIP Options / NTP -->
-                            <div
-                                v-if="
-                                    monitor.type === 'port' ||
-                                    monitor.type === 'steam' ||
-                                    monitor.type === 'gamedig' ||
-                                    monitor.type === 'mqtt' ||
-                                    monitor.type === 'radius' ||
-                                    monitor.type === 'smtp' ||
-                                    monitor.type === 'snmp' ||
-                                    monitor.type === 'sip-options' ||
-                                    monitor.type === 'sftp' ||
-                                    monitor.type === 'ntp' ||
-                                    (monitor.type === 'globalping' &&
-                                        monitor.subtype === 'ping' &&
-                                        monitor.protocol === 'TCP')
-                                "
-                                class="my-3"
-                            >
-                                <label for="port" class="form-label">{{ $t("Port") }}</label>
+                            <div v-if="monitor.subtype === 'http'" class="my-3">
+                                <label for="url" class="form-label">{{ $t("URL") }}</label>
                                 <input
-                                    id="port"
-                                    v-model="monitor.port"
-                                    type="number"
+                                    id="url"
+                                    v-model="monitor.url"
+                                    type="url"
                                     class="form-control"
+                                    pattern="https?://.+"
                                     required
-                                    min="0"
-                                    max="65535"
-                                    step="1"
-                                />
-                            </div>
-
-                            <!-- Gamedig Token -->
-                            <div v-if="monitor.type === 'gamedig'" class="my-3">
-                                <label for="gamedig-token" class="form-label">{{ $t("gamedigToken") }}</label>
-                                <input
-                                    id="gamedig-token"
-                                    v-model="monitor.gamedigToken"
-                                    type="password"
-                                    class="form-control"
-                                    :placeholder="$t('gamedigToken')"
+                                    data-testid="url-input"
                                 />
                                 <div class="form-text">
-                                    {{ $t("gamedigTokenDescription") }}
+                                    {{ $t("GlobalpingHostname") }}
                                 </div>
                             </div>
 
-                            <!-- SNMP Monitor Type -->
-                            <div v-if="monitor.type === 'snmp'" class="my-3">
-                                <label for="snmp_community_string" class="form-label">
-                                    {{ $t("Community String") }}
-                                </label>
-                                <!-- TODO: Rename monitor.radiusPassword to monitor.password for general use -->
-                                <HiddenInput
-                                    id="snmp_community_string"
-                                    v-model="monitor.radiusPassword"
-                                    autocomplete="false"
-                                    required="true"
-                                    placeholder="public"
-                                ></HiddenInput>
-
-                                <div class="form-text">{{ $t("snmpCommunityStringHelptext") }}</div>
-                            </div>
-
-                            <div v-if="monitor.type === 'snmp'" class="my-3">
-                                <label for="snmp_oid" class="form-label">{{ $t("OID (Object Identifier)") }}</label>
+                            <!-- Location -->
+                            <div class="my-3">
+                                <label for="location" class="form-label">{{ $t("Location") }}</label>
                                 <input
-                                    id="snmp_oid"
-                                    v-model="monitor.snmpOid"
-                                    :title="
-                                        $t('Please enter a valid OID.') +
-                                        ' ' +
-                                        $t('Example:', ['1.3.6.1.4.1.9.6.1.101'])
-                                    "
+                                    id="location"
+                                    v-model="monitor.location"
                                     type="text"
                                     class="form-control"
-                                    pattern="^([0-2])((\.0)|(\.[1-9][0-9]*))*$"
-                                    placeholder="1.3.6.1.4.1.9.6.1.101"
                                     required
                                 />
-                                <div class="form-text">{{ $t("snmpOIDHelptext") }}</div>
-                            </div>
-
-                            <div v-if="monitor.type === 'snmp'" class="my-3">
-                                <label for="snmp_version" class="form-label">{{ $t("SNMP Version") }}</label>
-                                <select id="snmp_version" v-model="monitor.snmpVersion" class="form-select">
-                                    <option value="1">SNMPv1</option>
-                                    <option value="2c">SNMPv2c</option>
-                                    <option value="3">SNMPv3</option>
-                                </select>
-                            </div>
-                            <div v-if="monitor.type === 'snmp' && monitor.snmpVersion === '3'" class="my-3">
-                                <label for="snmp_v3_username" class="form-label">
-                                    {{ $t("snmpV3Username") }}
-                                </label>
-
-                                <input
-                                    id="snmp_v3_username"
-                                    v-model="monitor.snmpV3Username"
-                                    type="text"
-                                    class="form-control"
-                                    placeholder="SNMPv3 username"
-                                    required
-                                />
-                            </div>
-
-                            <div v-if="monitor.type === 'smtp'" class="my-3">
-                                <label for="smtp_security" class="form-label">{{ $t("SMTP Security") }}</label>
-                                <select id="smtp_security" v-model="monitor.smtpSecurity" class="form-select">
-                                    <option value="secure">SMTPS</option>
-                                    <option value="nostarttls">{{ $t("Ignore STARTTLS") }}</option>
-                                    <option value="starttls">{{ $t("Use STARTTLS") }}</option>
-                                </select>
-                                <div class="form-text">
-                                    {{ $t("smtpHelpText") }}
-                                </div>
-                            </div>
-
-                            <!-- SFTP Monitor Fields -->
-                            <template v-if="monitor.type === 'sftp'">
-                                <div class="my-3">
-                                    <label for="ssh_username" class="form-label">{{ $t("Username") }}</label>
-                                    <input
-                                        id="ssh_username"
-                                        v-model="monitor.sshUsername"
-                                        type="text"
-                                        class="form-control"
-                                        required
-                                        autocomplete="username"
-                                    />
-                                </div>
-
-                                <!-- Auth Method -->
-                                <div class="my-3">
-                                    <label for="ssh_auth_method" class="form-label">
-                                        {{ $t("Authentication Method") }}
-                                    </label>
-                                    <select id="ssh_auth_method" v-model="monitor.sshAuthMethod" class="form-select">
-                                        <option value="password">{{ $t("Password") }}</option>
-                                        <option value="privateKey">{{ $t("SSH Private Key") }}</option>
-                                    </select>
-                                </div>
-
-                                <!-- Password auth -->
-                                <div v-if="monitor.sshAuthMethod !== 'privateKey'" class="my-3">
-                                    <label for="ssh_password" class="form-label">{{ $t("Password") }}</label>
-                                    <HiddenInput
-                                        id="ssh_password"
-                                        v-model="monitor.sshPassword"
-                                        autocomplete="current-password"
-                                        required="true"
-                                    ></HiddenInput>
-                                </div>
-
-                                <!-- SSH Key auth -->
-                                <template v-if="monitor.sshAuthMethod === 'privateKey'">
-                                    <div class="my-3">
-                                        <label for="ssh_private_key" class="form-label">
-                                            {{ $t("SSH Private Key") }}
-                                        </label>
-                                        <textarea
-                                            id="ssh_private_key"
-                                            v-model="monitor.sshPrivateKey"
-                                            class="form-control"
-                                            rows="6"
-                                            :placeholder="$t('sshPrivateKeyPlaceholder')"
-                                            required
-                                            autocomplete="off"
-                                        ></textarea>
-                                        <div class="form-text">{{ $t("sshPrivateKeyHelpText") }}</div>
-                                    </div>
-                                    <div class="my-3">
-                                        <label for="ssh_passphrase" class="form-label">
-                                            {{ $t("Passphrase") }}
-                                            <span class="text-muted small">({{ $t("optional") }})</span>
-                                        </label>
-                                        <HiddenInput
-                                            id="ssh_passphrase"
-                                            v-model="monitor.sshPassphrase"
-                                            autocomplete="off"
-                                        ></HiddenInput>
-                                        <div class="form-text">{{ $t("sshPassphraseHelpText") }}</div>
-                                    </div>
-                                </template>
-
-                                <div class="my-3">
-                                    <label for="sftp_path" class="form-label">{{ $t("SFTP Path to Check") }}</label>
-                                    <input
-                                        id="sftp_path"
-                                        v-model="monitor.sftpPath"
-                                        type="text"
-                                        class="form-control"
-                                        placeholder="/path/to/check (optional)"
-                                    />
-                                    <div class="form-text">{{ $t("sftpPathHelpText") }}</div>
-                                </div>
-                            </template>
-
-                            <!-- NTP Configuration -->
-                            <template v-if="monitor.type === 'ntp'">
-                                <h4 class="mt-4">{{ $t("ntpThresholdsTitle") }}</h4>
-
-                                <div class="my-3">
-                                    <label for="ntp-stratum-threshold" class="form-label">
-                                        {{ $t("ntpStratumThreshold") }}
-                                    </label>
-                                    <input
-                                        id="ntp-stratum-threshold"
-                                        v-model.number="monitor.ntpStratumThreshold"
-                                        type="number"
-                                        class="form-control"
-                                        min="1"
-                                        max="15"
-                                        placeholder="5"
-                                    />
-                                    <div class="form-text">
-                                        {{ $t("ntpStratumThresholdHelp") }}
-                                    </div>
-                                </div>
-
-                                <div class="my-3">
-                                    <label for="ntp-offset-threshold" class="form-label">
-                                        {{ $t("ntpOffsetThreshold") }}
-                                    </label>
-                                    <input
-                                        id="ntp-offset-threshold"
-                                        v-model.number="monitor.ntpTimeOffsetThreshold"
-                                        type="number"
-                                        class="form-control"
-                                        min="1"
-                                        placeholder="1000"
-                                    />
-                                    <div class="form-text">
-                                        {{ $t("ntpOffsetThresholdHelp") }}
-                                    </div>
-                                </div>
-
-                                <div class="my-3">
-                                    <label for="ntp-dispersion-threshold" class="form-label">
-                                        {{ $t("ntpDispersionThreshold") }}
-                                    </label>
-                                    <input
-                                        id="ntp-dispersion-threshold"
-                                        v-model.number="monitor.ntpRootDispersionThreshold"
-                                        type="number"
-                                        class="form-control"
-                                        min="1"
-                                        placeholder="500"
-                                    />
-                                    <div class="form-text">
-                                        {{ $t("ntpDispersionThresholdHelp") }}
-                                    </div>
-                                </div>
-                            </template>
-
-                            <!-- Json Query -->
-                            <!-- For Json Query / SNMP -->
-                            <div v-if="monitor.type === 'json-query' || monitor.type === 'snmp'" class="my-3">
-                                <div class="my-2">
-                                    <label for="jsonPath" class="form-label mb-0">
-                                        {{ $t("Json Query Expression") }}
-                                    </label>
-                                    <i18n-t tag="div" class="form-text mb-2" keypath="jsonQueryDescription">
-                                        <a href="https://jsonata.org/" target="_blank" rel="noopener noreferrer">
-                                            jsonata.org
-                                        </a>
-                                        <a href="https://try.jsonata.org/" target="_blank" rel="noopener noreferrer">
-                                            {{ $t("playground") }}
-                                        </a>
-                                    </i18n-t>
-                                    <input
-                                        id="jsonPath"
-                                        v-model="monitor.jsonPath"
-                                        type="text"
-                                        class="form-control"
-                                        placeholder="$"
-                                        required
-                                    />
-                                </div>
-
-                                <div class="d-flex align-items-start">
-                                    <div class="me-2">
-                                        <label for="json_path_operator" class="form-label">{{ $t("Condition") }}</label>
-                                        <select
-                                            id="json_path_operator"
-                                            v-model="monitor.jsonPathOperator"
-                                            class="form-select me-3"
-                                            required
+                                <i18n-t keypath="GlobalpingLocationDescription" tag="div" class="form-text">
+                                    <template #plus>
+                                        <code>+</code>
+                                    </template>
+                                    <template #amazonPlusGermany>
+                                        <code>amazon+germany</code>
+                                    </template>
+                                    <template #comcastPlusCalifornia>
+                                        <code>comcast+california</code>
+                                    </template>
+                                    <template #datacenter>
+                                        <code>+datacenter</code>
+                                    </template>
+                                    <template #fullDocs>
+                                        <a
+                                            href="https://github.com/jsdelivr/globalping?tab=readme-ov-file#basic-location-targeting-"
+                                            target="_blank"
                                         >
-                                            <option value=">">&gt;</option>
-                                            <option value=">=">&gt;=</option>
-                                            <option value="<">&lt;</option>
-                                            <option value="<=">&lt;=</option>
-                                            <option value="!=">&#33;=</option>
-                                            <option value="==">==</option>
-                                            <option value="contains">contains</option>
-                                        </select>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <label for="expectedValue" class="form-label">{{ $t("Expected Value") }}</label>
-                                        <input
-                                            v-if="
-                                                monitor.jsonPathOperator !== 'contains' &&
-                                                monitor.jsonPathOperator !== '==' &&
-                                                monitor.jsonPathOperator !== '!='
-                                            "
-                                            id="expectedValue"
-                                            v-model="monitor.expectedValue"
-                                            type="number"
-                                            class="form-control"
-                                            required
-                                            step=".01"
-                                        />
-                                        <input
-                                            v-else
-                                            id="expectedValue"
-                                            v-model="monitor.expectedValue"
-                                            type="text"
-                                            class="form-control"
-                                            required
-                                        />
-                                    </div>
+                                            {{ $t("GlobalpingLocationDocs") }}
+                                        </a>
+                                    </template>
+                                </i18n-t>
+                            </div>
+
+                            <!-- IP Family -->
+                            <div class="my-3">
+                                <label for="ipFamily" class="form-label">{{ $t("Ip Family") }}</label>
+                                <select id="ipFamily" v-model="monitor.ipFamily" class="form-select">
+                                    <option :value="null">{{ $t("auto-select") }}</option>
+                                    <option value="ipv4">IPv4</option>
+                                    <option value="ipv6">IPv6</option>
+                                </select>
+                                <div class="form-text">
+                                    {{ $t("GlobalpingIpFamilyInfo") }}
                                 </div>
                             </div>
 
-                            <!-- DNS Resolver Server -->
-                            <!-- For DNS Type -->
-                            <template v-if="monitor.type === 'dns'">
-                                <div class="my-3">
-                                    <label for="dns_resolve_server" class="form-label">
-                                        {{ $t("Resolver Server(s)") }}
-                                    </label>
-                                    <input
-                                        id="dns_resolve_server"
-                                        v-model="monitor.dns_resolve_server"
-                                        type="text"
-                                        class="form-control"
-                                        required
-                                    />
-                                    <div class="form-text">
-                                        {{ $t("resolverserverDescription") }}
-                                    </div>
+                            <div v-if="monitor.subtype === 'http' || monitor.subtype === 'dns'" class="my-3">
+                                <label for="dns_resolve_server" class="form-label">
+                                    {{ $t("Resolver Server") }}
+                                </label>
+                                <input
+                                    id="dns_resolve_server"
+                                    v-model="monitor.dns_resolve_server"
+                                    type="text"
+                                    class="form-control"
+                                />
+                                <div class="form-text">
+                                    {{ $t("GlobalpingResolverInfo") }}
                                 </div>
+                            </div>
 
+                            <!-- DNS -->
+                            <template v-if="monitor.subtype === 'dns'">
                                 <!-- Port -->
                                 <div class="my-3">
                                     <label for="port" class="form-label">{{ $t("Port") }}</label>
@@ -1052,6 +615,7 @@
                                         min="0"
                                         max="65535"
                                         step="1"
+                                        value="53"
                                     />
                                     <div class="form-text">
                                         {{ $t("dnsPortDescription") }}
@@ -1067,7 +631,7 @@
                                     <VueMultiselect
                                         id="dns_resolve_type"
                                         v-model="monitor.dns_resolve_type"
-                                        :options="dnsresolvetypeOptions"
+                                        :options="globalpingdnsresolvetypeoptions"
                                         :multiple="false"
                                         :close-on-select="true"
                                         :clear-on-select="false"
@@ -1083,1098 +647,1460 @@
                                         {{ $t("rrtypeDescription") }}
                                     </div>
                                 </div>
+
+                                <div class="my-3">
+                                    <label for="keyword" class="form-label">{{ $t("RecordMatch") }}</label>
+                                    <input id="keyword" v-model="monitor.keyword" type="text" class="form-control" />
+                                    <div class="form-text">
+                                        {{ $t("RegexMatch") }}
+                                    </div>
+                                </div>
                             </template>
 
-                            <!-- Docker Container Name / ID -->
-                            <!-- For Docker Type -->
-                            <div v-if="monitor.type === 'docker'" class="my-3">
-                                <label for="docker_container" class="form-label">{{ $t("Container Name / ID") }}</label>
+                            <!-- Protocol -->
+                            <div class="my-3">
+                                <label for="protocol" class="form-label">{{ $t("Protocol") }}</label>
+                                <select id="protocol" v-model="monitor.protocol" class="form-select" required>
+                                    <template v-if="monitor.subtype === 'ping'">
+                                        <option value="ICMP">ICMP</option>
+                                        <option value="TCP">TCP</option>
+                                    </template>
+                                    <template v-else-if="monitor.subtype === 'http'">
+                                        <option :value="null">{{ $t("auto-select") }}</option>
+                                        <option value="HTTP2">HTTP2</option>
+                                    </template>
+                                    <template v-else-if="monitor.subtype === 'dns'">
+                                        <option value="UDP">UDP</option>
+                                        <option value="TCP">TCP</option>
+                                    </template>
+                                </select>
+                            </div>
+                        </template>
+
+                        <!-- Port -->
+                        <!-- For TCP Port / Steam / MQTT / Radius Type / SNMP / SIP Options / NTP -->
+                        <div
+                            v-if="
+                                monitor.type === 'port' ||
+                                monitor.type === 'steam' ||
+                                monitor.type === 'gamedig' ||
+                                monitor.type === 'mqtt' ||
+                                monitor.type === 'radius' ||
+                                monitor.type === 'smtp' ||
+                                monitor.type === 'snmp' ||
+                                monitor.type === 'sip-options' ||
+                                monitor.type === 'sftp' ||
+                                monitor.type === 'ntp' ||
+                                (monitor.type === 'globalping' &&
+                                    monitor.subtype === 'ping' &&
+                                    monitor.protocol === 'TCP')
+                            "
+                            class="my-3"
+                        >
+                            <label for="port" class="form-label">{{ $t("Port") }}</label>
+                            <input
+                                id="port"
+                                v-model="monitor.port"
+                                type="number"
+                                class="form-control"
+                                required
+                                min="0"
+                                max="65535"
+                                step="1"
+                            />
+                        </div>
+
+                        <!-- Gamedig Token -->
+                        <div v-if="monitor.type === 'gamedig'" class="my-3">
+                            <label for="gamedig-token" class="form-label">{{ $t("gamedigToken") }}</label>
+                            <input
+                                id="gamedig-token"
+                                v-model="monitor.gamedigToken"
+                                type="password"
+                                class="form-control"
+                                :placeholder="$t('gamedigToken')"
+                            />
+                            <div class="form-text">
+                                {{ $t("gamedigTokenDescription") }}
+                            </div>
+                        </div>
+
+                        <!-- SNMP Monitor Type -->
+                        <div v-if="monitor.type === 'snmp'" class="my-3">
+                            <label for="snmp_community_string" class="form-label">
+                                {{ $t("Community String") }}
+                            </label>
+                            <!-- TODO: Rename monitor.radiusPassword to monitor.password for general use -->
+                            <HiddenInput
+                                id="snmp_community_string"
+                                v-model="monitor.radiusPassword"
+                                autocomplete="false"
+                                required="true"
+                                placeholder="public"
+                            ></HiddenInput>
+
+                            <div class="form-text">{{ $t("snmpCommunityStringHelptext") }}</div>
+                        </div>
+
+                        <div v-if="monitor.type === 'snmp'" class="my-3">
+                            <label for="snmp_oid" class="form-label">{{ $t("OID (Object Identifier)") }}</label>
+                            <input
+                                id="snmp_oid"
+                                v-model="monitor.snmpOid"
+                                :title="
+                                    $t('Please enter a valid OID.') + ' ' + $t('Example:', ['1.3.6.1.4.1.9.6.1.101'])
+                                "
+                                type="text"
+                                class="form-control"
+                                pattern="^([0-2])((\.0)|(\.[1-9][0-9]*))*$"
+                                placeholder="1.3.6.1.4.1.9.6.1.101"
+                                required
+                            />
+                            <div class="form-text">{{ $t("snmpOIDHelptext") }}</div>
+                        </div>
+
+                        <div v-if="monitor.type === 'snmp'" class="my-3">
+                            <label for="snmp_version" class="form-label">{{ $t("SNMP Version") }}</label>
+                            <select id="snmp_version" v-model="monitor.snmpVersion" class="form-select">
+                                <option value="1">SNMPv1</option>
+                                <option value="2c">SNMPv2c</option>
+                                <option value="3">SNMPv3</option>
+                            </select>
+                        </div>
+                        <div v-if="monitor.type === 'snmp' && monitor.snmpVersion === '3'" class="my-3">
+                            <label for="snmp_v3_username" class="form-label">
+                                {{ $t("snmpV3Username") }}
+                            </label>
+
+                            <input
+                                id="snmp_v3_username"
+                                v-model="monitor.snmpV3Username"
+                                type="text"
+                                class="form-control"
+                                placeholder="SNMPv3 username"
+                                required
+                            />
+                        </div>
+
+                        <div v-if="monitor.type === 'smtp'" class="my-3">
+                            <label for="smtp_security" class="form-label">{{ $t("SMTP Security") }}</label>
+                            <select id="smtp_security" v-model="monitor.smtpSecurity" class="form-select">
+                                <option value="secure">SMTPS</option>
+                                <option value="nostarttls">{{ $t("Ignore STARTTLS") }}</option>
+                                <option value="starttls">{{ $t("Use STARTTLS") }}</option>
+                            </select>
+                            <div class="form-text">
+                                {{ $t("smtpHelpText") }}
+                            </div>
+                        </div>
+
+                        <!-- SFTP Monitor Fields -->
+                        <template v-if="monitor.type === 'sftp'">
+                            <div class="my-3">
+                                <label for="ssh_username" class="form-label">{{ $t("Username") }}</label>
                                 <input
-                                    id="docker_container"
-                                    v-model="monitor.docker_container"
+                                    id="ssh_username"
+                                    v-model="monitor.sshUsername"
+                                    type="text"
+                                    class="form-control"
+                                    required
+                                    autocomplete="username"
+                                />
+                            </div>
+
+                            <!-- Auth Method -->
+                            <div class="my-3">
+                                <label for="ssh_auth_method" class="form-label">
+                                    {{ $t("Authentication Method") }}
+                                </label>
+                                <select id="ssh_auth_method" v-model="monitor.sshAuthMethod" class="form-select">
+                                    <option value="password">{{ $t("Password") }}</option>
+                                    <option value="privateKey">{{ $t("SSH Private Key") }}</option>
+                                </select>
+                            </div>
+
+                            <!-- Password auth -->
+                            <div v-if="monitor.sshAuthMethod !== 'privateKey'" class="my-3">
+                                <label for="ssh_password" class="form-label">{{ $t("Password") }}</label>
+                                <HiddenInput
+                                    id="ssh_password"
+                                    v-model="monitor.sshPassword"
+                                    autocomplete="current-password"
+                                    required="true"
+                                ></HiddenInput>
+                            </div>
+
+                            <!-- SSH Key auth -->
+                            <template v-if="monitor.sshAuthMethod === 'privateKey'">
+                                <div class="my-3">
+                                    <label for="ssh_private_key" class="form-label">
+                                        {{ $t("SSH Private Key") }}
+                                    </label>
+                                    <textarea
+                                        id="ssh_private_key"
+                                        v-model="monitor.sshPrivateKey"
+                                        class="form-control"
+                                        rows="6"
+                                        :placeholder="$t('sshPrivateKeyPlaceholder')"
+                                        required
+                                        autocomplete="off"
+                                    ></textarea>
+                                    <div class="form-text">{{ $t("sshPrivateKeyHelpText") }}</div>
+                                </div>
+                                <div class="my-3">
+                                    <label for="ssh_passphrase" class="form-label">
+                                        {{ $t("Passphrase") }}
+                                        <span class="text-muted small">({{ $t("optional") }})</span>
+                                    </label>
+                                    <HiddenInput
+                                        id="ssh_passphrase"
+                                        v-model="monitor.sshPassphrase"
+                                        autocomplete="off"
+                                    ></HiddenInput>
+                                    <div class="form-text">{{ $t("sshPassphraseHelpText") }}</div>
+                                </div>
+                            </template>
+
+                            <div class="my-3">
+                                <label for="sftp_path" class="form-label">{{ $t("SFTP Path to Check") }}</label>
+                                <input
+                                    id="sftp_path"
+                                    v-model="monitor.sftpPath"
+                                    type="text"
+                                    class="form-control"
+                                    placeholder="/path/to/check (optional)"
+                                />
+                                <div class="form-text">{{ $t("sftpPathHelpText") }}</div>
+                            </div>
+                        </template>
+
+                        <!-- NTP Configuration -->
+                        <template v-if="monitor.type === 'ntp'">
+                            <h4 class="mt-4">{{ $t("ntpThresholdsTitle") }}</h4>
+
+                            <div class="my-3">
+                                <label for="ntp-stratum-threshold" class="form-label">
+                                    {{ $t("ntpStratumThreshold") }}
+                                </label>
+                                <input
+                                    id="ntp-stratum-threshold"
+                                    v-model.number="monitor.ntpStratumThreshold"
+                                    type="number"
+                                    class="form-control"
+                                    min="1"
+                                    max="15"
+                                    placeholder="5"
+                                />
+                                <div class="form-text">
+                                    {{ $t("ntpStratumThresholdHelp") }}
+                                </div>
+                            </div>
+
+                            <div class="my-3">
+                                <label for="ntp-offset-threshold" class="form-label">
+                                    {{ $t("ntpOffsetThreshold") }}
+                                </label>
+                                <input
+                                    id="ntp-offset-threshold"
+                                    v-model.number="monitor.ntpTimeOffsetThreshold"
+                                    type="number"
+                                    class="form-control"
+                                    min="1"
+                                    placeholder="1000"
+                                />
+                                <div class="form-text">
+                                    {{ $t("ntpOffsetThresholdHelp") }}
+                                </div>
+                            </div>
+
+                            <div class="my-3">
+                                <label for="ntp-dispersion-threshold" class="form-label">
+                                    {{ $t("ntpDispersionThreshold") }}
+                                </label>
+                                <input
+                                    id="ntp-dispersion-threshold"
+                                    v-model.number="monitor.ntpRootDispersionThreshold"
+                                    type="number"
+                                    class="form-control"
+                                    min="1"
+                                    placeholder="500"
+                                />
+                                <div class="form-text">
+                                    {{ $t("ntpDispersionThresholdHelp") }}
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Json Query -->
+                        <!-- For Json Query / SNMP -->
+                        <div v-if="monitor.type === 'json-query' || monitor.type === 'snmp'" class="my-3">
+                            <div class="my-2">
+                                <label for="jsonPath" class="form-label mb-0">
+                                    {{ $t("Json Query Expression") }}
+                                </label>
+                                <i18n-t tag="div" class="form-text mb-2" keypath="jsonQueryDescription">
+                                    <a href="https://jsonata.org/" target="_blank" rel="noopener noreferrer">
+                                        jsonata.org
+                                    </a>
+                                    <a href="https://try.jsonata.org/" target="_blank" rel="noopener noreferrer">
+                                        {{ $t("playground") }}
+                                    </a>
+                                </i18n-t>
+                                <input
+                                    id="jsonPath"
+                                    v-model="monitor.jsonPath"
+                                    type="text"
+                                    class="form-control"
+                                    placeholder="$"
+                                    required
+                                />
+                            </div>
+
+                            <div class="d-flex align-items-start">
+                                <div class="me-2">
+                                    <label for="json_path_operator" class="form-label">{{ $t("Condition") }}</label>
+                                    <select
+                                        id="json_path_operator"
+                                        v-model="monitor.jsonPathOperator"
+                                        class="form-select me-3"
+                                        required
+                                    >
+                                        <option value=">">&gt;</option>
+                                        <option value=">=">&gt;=</option>
+                                        <option value="<">&lt;</option>
+                                        <option value="<=">&lt;=</option>
+                                        <option value="!=">&#33;=</option>
+                                        <option value="==">==</option>
+                                        <option value="contains">contains</option>
+                                    </select>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <label for="expectedValue" class="form-label">{{ $t("Expected Value") }}</label>
+                                    <input
+                                        v-if="
+                                            monitor.jsonPathOperator !== 'contains' &&
+                                            monitor.jsonPathOperator !== '==' &&
+                                            monitor.jsonPathOperator !== '!='
+                                        "
+                                        id="expectedValue"
+                                        v-model="monitor.expectedValue"
+                                        type="number"
+                                        class="form-control"
+                                        required
+                                        step=".01"
+                                    />
+                                    <input
+                                        v-else
+                                        id="expectedValue"
+                                        v-model="monitor.expectedValue"
+                                        type="text"
+                                        class="form-control"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DNS Resolver Server -->
+                        <!-- For DNS Type -->
+                        <template v-if="monitor.type === 'dns'">
+                            <div class="my-3">
+                                <label for="dns_resolve_server" class="form-label">
+                                    {{ $t("Resolver Server(s)") }}
+                                </label>
+                                <input
+                                    id="dns_resolve_server"
+                                    v-model="monitor.dns_resolve_server"
+                                    type="text"
+                                    class="form-control"
+                                    required
+                                />
+                                <div class="form-text">
+                                    {{ $t("resolverserverDescription") }}
+                                </div>
+                            </div>
+
+                            <!-- Port -->
+                            <div class="my-3">
+                                <label for="port" class="form-label">{{ $t("Port") }}</label>
+                                <input
+                                    id="port"
+                                    v-model="monitor.port"
+                                    type="number"
+                                    class="form-control"
+                                    required
+                                    min="0"
+                                    max="65535"
+                                    step="1"
+                                />
+                                <div class="form-text">
+                                    {{ $t("dnsPortDescription") }}
+                                </div>
+                            </div>
+
+                            <div class="my-3">
+                                <label for="dns_resolve_type" class="form-label">
+                                    {{ $t("Resource Record Type") }}
+                                </label>
+
+                                <!-- :allow-empty="false" is not working, set a default value instead https://github.com/shentao/vue-multiselect/issues/336   -->
+                                <VueMultiselect
+                                    id="dns_resolve_type"
+                                    v-model="monitor.dns_resolve_type"
+                                    :options="dnsresolvetypeOptions"
+                                    :multiple="false"
+                                    :close-on-select="true"
+                                    :clear-on-select="false"
+                                    :preserve-search="false"
+                                    :placeholder="$t('Pick a RR-Type...')"
+                                    :preselect-first="false"
+                                    :max-height="500"
+                                    :taggable="false"
+                                    data-testid="resolve-type-select"
+                                ></VueMultiselect>
+
+                                <div class="form-text">
+                                    {{ $t("rrtypeDescription") }}
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Docker Container Name / ID -->
+                        <!-- For Docker Type -->
+                        <div v-if="monitor.type === 'docker'" class="my-3">
+                            <label for="docker_container" class="form-label">{{ $t("Container Name / ID") }}</label>
+                            <input
+                                id="docker_container"
+                                v-model="monitor.docker_container"
+                                type="text"
+                                class="form-control"
+                                required
+                            />
+                        </div>
+
+                        <!-- Docker Host -->
+                        <!-- For Docker Type -->
+                        <div v-if="monitor.type === 'docker'" class="my-3">
+                            <div class="mb-3">
+                                <label for="docker-host" class="form-label">{{ $t("Docker Host") }}</label>
+                                <ActionSelect
+                                    id="docker-host"
+                                    v-model="monitor.docker_host"
+                                    :action-aria-label="$t('openModalTo', $t('Setup Docker Host'))"
+                                    :options="dockerHostOptionsList"
+                                    :disabled="$root.dockerHostList == null || $root.dockerHostList.length === 0"
+                                    :icon="'plus'"
+                                    :action="() => $refs.dockerHostDialog.show()"
+                                    :required="true"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- MQTT -->
+                        <!-- For MQTT Type -->
+                        <template v-if="monitor.type === 'mqtt'">
+                            <div class="my-3">
+                                <label for="mqttUsername" class="form-label">MQTT {{ $t("Username") }}</label>
+                                <input
+                                    id="mqttUsername"
+                                    v-model="monitor.mqttUsername"
+                                    type="text"
+                                    class="form-control"
+                                />
+                            </div>
+
+                            <div class="my-3">
+                                <label for="mqttPassword" class="form-label">MQTT {{ $t("Password") }}</label>
+                                <HiddenInput
+                                    id="mqttPassword"
+                                    v-model="monitor.mqttPassword"
+                                    autocomplete="new-password"
+                                />
+                            </div>
+
+                            <div class="my-3">
+                                <label for="mqttTopic" class="form-label">MQTT {{ $t("Topic") }}</label>
+                                <input
+                                    id="mqttTopic"
+                                    v-model="monitor.mqttTopic"
+                                    type="text"
+                                    class="form-control"
+                                    required
+                                />
+                                <div class="form-text">
+                                    {{ $t("topicExplanation") }}
+                                </div>
+                            </div>
+
+                            <div class="my-3">
+                                <label for="mqttWebsocketPath" class="form-label">
+                                    {{ $t("mqttWebSocketPath") }}
+                                </label>
+                                <input
+                                    v-if="/(mqtts?|wss?):\/\/.+/.test(monitor.hostname)"
+                                    id="mqttWebsocketPath"
+                                    v-model="monitor.mqttWebsocketPath"
+                                    type="text"
+                                    class="form-control"
+                                />
+                                <input v-else type="text" class="form-control" disabled />
+                                <div class="form-text">
+                                    {{ $t("mqttWebsocketPathExplanation") }}
+                                </div>
+                            </div>
+
+                            <div class="my-3">
+                                <label for="mqttCheckType" class="form-label">MQTT {{ $t("Check Type") }}</label>
+                                <select id="mqttCheckType" v-model="monitor.mqttCheckType" class="form-select" required>
+                                    <option value="keyword">{{ $t("Keyword") }}</option>
+                                    <option value="json-query">{{ $t("Json Query") }}</option>
+                                </select>
+                            </div>
+
+                            <div v-if="monitor.mqttCheckType === 'keyword'" class="my-3">
+                                <label for="mqttSuccessKeyword" class="form-label">
+                                    MQTT {{ $t("successKeyword") }}
+                                </label>
+                                <input
+                                    id="mqttSuccessKeyword"
+                                    v-model="monitor.mqttSuccessMessage"
+                                    type="text"
+                                    class="form-control"
+                                />
+                                <div class="form-text">
+                                    {{ $t("successKeywordExplanation") }}
+                                </div>
+                            </div>
+
+                            <!-- Json Query -->
+                            <div v-if="monitor.mqttCheckType === 'json-query'" class="my-3">
+                                <label for="jsonPath" class="form-label">{{ $t("Json Query") }}</label>
+                                <input
+                                    id="jsonPath"
+                                    v-model="monitor.jsonPath"
+                                    type="text"
+                                    class="form-control"
+                                    required
+                                />
+
+                                <i18n-t tag="div" class="form-text" keypath="jsonQueryDescription">
+                                    <a href="https://jsonata.org/" target="_blank" rel="noopener noreferrer">
+                                        jsonata.org
+                                    </a>
+                                    <a href="https://try.jsonata.org/" target="_blank" rel="noopener noreferrer">
+                                        {{ $t("here") }}
+                                    </a>
+                                </i18n-t>
+                                <br />
+
+                                <label for="expectedValue" class="form-label">{{ $t("Expected Value") }}</label>
+                                <input
+                                    id="expectedValue"
+                                    v-model="monitor.expectedValue"
+                                    type="text"
+                                    class="form-control"
+                                    required
+                                />
+                            </div>
+                        </template>
+
+                        <template v-if="monitor.type === 'radius'">
+                            <div class="my-3">
+                                <label for="radius_username" class="form-label">Radius {{ $t("Username") }}</label>
+                                <input
+                                    id="radius_username"
+                                    v-model="monitor.radiusUsername"
                                     type="text"
                                     class="form-control"
                                     required
                                 />
                             </div>
 
-                            <!-- Docker Host -->
-                            <!-- For Docker Type -->
-                            <div v-if="monitor.type === 'docker'" class="my-3">
-                                <div class="mb-3">
-                                    <label for="docker-host" class="form-label">{{ $t("Docker Host") }}</label>
-                                    <ActionSelect
-                                        id="docker-host"
-                                        v-model="monitor.docker_host"
-                                        :action-aria-label="$t('openModalTo', $t('Setup Docker Host'))"
-                                        :options="dockerHostOptionsList"
-                                        :disabled="$root.dockerHostList == null || $root.dockerHostList.length === 0"
-                                        :icon="'plus'"
-                                        :action="() => $refs.dockerHostDialog.show()"
-                                        :required="true"
-                                    />
-                                </div>
+                            <div class="my-3">
+                                <label for="radius_password" class="form-label">Radius {{ $t("Password") }}</label>
+                                <HiddenInput
+                                    id="radius_password"
+                                    v-model="monitor.radiusPassword"
+                                    autocomplete="new-password"
+                                    :required="true"
+                                />
                             </div>
 
-                            <!-- MQTT -->
-                            <!-- For MQTT Type -->
-                            <template v-if="monitor.type === 'mqtt'">
-                                <div class="my-3">
-                                    <label for="mqttUsername" class="form-label">MQTT {{ $t("Username") }}</label>
-                                    <input
-                                        id="mqttUsername"
-                                        v-model="monitor.mqttUsername"
-                                        type="text"
-                                        class="form-control"
-                                    />
-                                </div>
+                            <div class="my-3">
+                                <label for="radius_secret" class="form-label">{{ $t("RadiusSecret") }}</label>
+                                <HiddenInput
+                                    id="radius_secret"
+                                    v-model="monitor.radiusSecret"
+                                    autocomplete="new-password"
+                                    :required="true"
+                                />
+                                <div class="form-text">{{ $t("RadiusSecretDescription") }}</div>
+                            </div>
 
-                                <div class="my-3">
-                                    <label for="mqttPassword" class="form-label">MQTT {{ $t("Password") }}</label>
-                                    <HiddenInput
-                                        id="mqttPassword"
-                                        v-model="monitor.mqttPassword"
-                                        autocomplete="new-password"
-                                    />
-                                </div>
+                            <div class="my-3">
+                                <label for="radius_called_station_id" class="form-label">
+                                    {{ $t("RadiusCalledStationId") }}
+                                </label>
+                                <input
+                                    id="radius_called_station_id"
+                                    v-model="monitor.radiusCalledStationId"
+                                    type="text"
+                                    class="form-control"
+                                    required
+                                />
+                                <div class="form-text">{{ $t("RadiusCalledStationIdDescription") }}</div>
+                            </div>
 
-                                <div class="my-3">
-                                    <label for="mqttTopic" class="form-label">MQTT {{ $t("Topic") }}</label>
-                                    <input
-                                        id="mqttTopic"
-                                        v-model="monitor.mqttTopic"
-                                        type="text"
-                                        class="form-control"
-                                        required
-                                    />
-                                    <div class="form-text">
-                                        {{ $t("topicExplanation") }}
-                                    </div>
-                                </div>
+                            <div class="my-3">
+                                <label for="radius_calling_station_id" class="form-label">
+                                    {{ $t("RadiusCallingStationId") }}
+                                </label>
+                                <input
+                                    id="radius_calling_station_id"
+                                    v-model="monitor.radiusCallingStationId"
+                                    type="text"
+                                    class="form-control"
+                                    required
+                                />
+                                <div class="form-text">{{ $t("RadiusCallingStationIdDescription") }}</div>
+                            </div>
+                        </template>
 
-                                <div class="my-3">
-                                    <label for="mqttWebsocketPath" class="form-label">
-                                        {{ $t("mqttWebSocketPath") }}
-                                    </label>
-                                    <input
-                                        v-if="/(mqtts?|wss?):\/\/.+/.test(monitor.hostname)"
-                                        id="mqttWebsocketPath"
-                                        v-model="monitor.mqttWebsocketPath"
-                                        type="text"
-                                        class="form-control"
-                                    />
-                                    <input v-else type="text" class="form-control" disabled />
-                                    <div class="form-text">
-                                        {{ $t("mqttWebsocketPathExplanation") }}
-                                    </div>
-                                </div>
+                        <!-- SQL Server / PostgreSQL / MySQL / Oracle / Redis / MongoDB -->
+                        <template
+                            v-if="
+                                monitor.type === 'sqlserver' ||
+                                monitor.type === 'postgres' ||
+                                monitor.type === 'mysql' ||
+                                monitor.type === 'oracledb' ||
+                                monitor.type === 'redis' ||
+                                monitor.type === 'mongodb'
+                            "
+                        >
+                            <div class="my-3">
+                                <label for="connectionString" class="form-label">
+                                    {{ $t("Connection String") }}
+                                </label>
+                                <input
+                                    id="connectionString"
+                                    v-model="monitor.databaseConnectionString"
+                                    type="text"
+                                    class="form-control"
+                                    required
+                                />
+                            </div>
+                        </template>
 
-                                <div class="my-3">
-                                    <label for="mqttCheckType" class="form-label">MQTT {{ $t("Check Type") }}</label>
-                                    <select
-                                        id="mqttCheckType"
-                                        v-model="monitor.mqttCheckType"
-                                        class="form-select"
-                                        required
-                                    >
-                                        <option value="keyword">{{ $t("Keyword") }}</option>
-                                        <option value="json-query">{{ $t("Json Query") }}</option>
-                                    </select>
-                                </div>
+                        <template v-if="monitor.type === 'oracledb'">
+                            <div class="my-3">
+                                <label for="oracledb-user" class="form-label">{{ $t("Username") }}</label>
+                                <input
+                                    id="oracledb-user"
+                                    v-model="monitor.basic_auth_user"
+                                    type="text"
+                                    class="form-control"
+                                    required
+                                />
+                            </div>
 
-                                <div v-if="monitor.mqttCheckType === 'keyword'" class="my-3">
-                                    <label for="mqttSuccessKeyword" class="form-label">
-                                        MQTT {{ $t("successKeyword") }}
-                                    </label>
-                                    <input
-                                        id="mqttSuccessKeyword"
-                                        v-model="monitor.mqttSuccessMessage"
-                                        type="text"
-                                        class="form-control"
-                                    />
-                                    <div class="form-text">
-                                        {{ $t("successKeywordExplanation") }}
-                                    </div>
-                                </div>
+                            <div class="my-3">
+                                <label for="oracledb-pass" class="form-label">{{ $t("Password") }}</label>
+                                <HiddenInput
+                                    id="oracledb-pass"
+                                    v-model="monitor.basic_auth_pass"
+                                    autocomplete="new-password"
+                                    :required="true"
+                                />
+                            </div>
+                        </template>
 
-                                <!-- Json Query -->
-                                <div v-if="monitor.mqttCheckType === 'json-query'" class="my-3">
-                                    <label for="jsonPath" class="form-label">{{ $t("Json Query") }}</label>
-                                    <input
-                                        id="jsonPath"
-                                        v-model="monitor.jsonPath"
-                                        type="text"
-                                        class="form-control"
-                                        required
-                                    />
+                        <template v-if="monitor.type === 'system-service'">
+                            <div class="my-3">
+                                <label for="system-service-name" class="form-label">
+                                    {{ $t("systemServiceName") }}
+                                </label>
+                                <input
+                                    id="system-service-name"
+                                    v-model="monitor.config.systemServiceName"
+                                    type="text"
+                                    class="form-control"
+                                    required
+                                    :placeholder="$root.info.runtime.platform === 'win32' ? 'Dnscache' : 'nginx'"
+                                />
 
-                                    <i18n-t tag="div" class="form-text" keypath="jsonQueryDescription">
-                                        <a href="https://jsonata.org/" target="_blank" rel="noopener noreferrer">
-                                            jsonata.org
-                                        </a>
-                                        <a href="https://try.jsonata.org/" target="_blank" rel="noopener noreferrer">
-                                            {{ $t("here") }}
-                                        </a>
-                                    </i18n-t>
-                                    <br />
-
-                                    <label for="expectedValue" class="form-label">{{ $t("Expected Value") }}</label>
-                                    <input
-                                        id="expectedValue"
-                                        v-model="monitor.expectedValue"
-                                        type="text"
-                                        class="form-control"
-                                        required
-                                    />
-                                </div>
-                            </template>
-
-                            <template v-if="monitor.type === 'radius'">
-                                <div class="my-3">
-                                    <label for="radius_username" class="form-label">Radius {{ $t("Username") }}</label>
-                                    <input
-                                        id="radius_username"
-                                        v-model="monitor.radiusUsername"
-                                        type="text"
-                                        class="form-control"
-                                        required
-                                    />
-                                </div>
-
-                                <div class="my-3">
-                                    <label for="radius_password" class="form-label">Radius {{ $t("Password") }}</label>
-                                    <HiddenInput
-                                        id="radius_password"
-                                        v-model="monitor.radiusPassword"
-                                        autocomplete="new-password"
-                                        :required="true"
-                                    />
-                                </div>
-
-                                <div class="my-3">
-                                    <label for="radius_secret" class="form-label">{{ $t("RadiusSecret") }}</label>
-                                    <HiddenInput
-                                        id="radius_secret"
-                                        v-model="monitor.radiusSecret"
-                                        autocomplete="new-password"
-                                        :required="true"
-                                    />
-                                    <div class="form-text">{{ $t("RadiusSecretDescription") }}</div>
-                                </div>
-
-                                <div class="my-3">
-                                    <label for="radius_called_station_id" class="form-label">
-                                        {{ $t("RadiusCalledStationId") }}
-                                    </label>
-                                    <input
-                                        id="radius_called_station_id"
-                                        v-model="monitor.radiusCalledStationId"
-                                        type="text"
-                                        class="form-control"
-                                        required
-                                    />
-                                    <div class="form-text">{{ $t("RadiusCalledStationIdDescription") }}</div>
-                                </div>
-
-                                <div class="my-3">
-                                    <label for="radius_calling_station_id" class="form-label">
-                                        {{ $t("RadiusCallingStationId") }}
-                                    </label>
-                                    <input
-                                        id="radius_calling_station_id"
-                                        v-model="monitor.radiusCallingStationId"
-                                        type="text"
-                                        class="form-control"
-                                        required
-                                    />
-                                    <div class="form-text">{{ $t("RadiusCallingStationIdDescription") }}</div>
-                                </div>
-                            </template>
-
-                            <!-- SQL Server / PostgreSQL / MySQL / Oracle / Redis / MongoDB -->
-                            <template
-                                v-if="
-                                    monitor.type === 'sqlserver' ||
-                                    monitor.type === 'postgres' ||
-                                    monitor.type === 'mysql' ||
-                                    monitor.type === 'oracledb' ||
-                                    monitor.type === 'redis' ||
-                                    monitor.type === 'mongodb'
-                                "
-                            >
-                                <div class="my-3">
-                                    <label for="connectionString" class="form-label">
-                                        {{ $t("Connection String") }}
-                                    </label>
-                                    <input
-                                        id="connectionString"
-                                        v-model="monitor.databaseConnectionString"
-                                        type="text"
-                                        class="form-control"
-                                        required
-                                    />
-                                </div>
-                            </template>
-
-                            <template v-if="monitor.type === 'oracledb'">
-                                <div class="my-3">
-                                    <label for="oracledb-user" class="form-label">{{ $t("Username") }}</label>
-                                    <input
-                                        id="oracledb-user"
-                                        v-model="monitor.basic_auth_user"
-                                        type="text"
-                                        class="form-control"
-                                        required
-                                    />
-                                </div>
-
-                                <div class="my-3">
-                                    <label for="oracledb-pass" class="form-label">{{ $t("Password") }}</label>
-                                    <HiddenInput
-                                        id="oracledb-pass"
-                                        v-model="monitor.basic_auth_pass"
-                                        autocomplete="new-password"
-                                        :required="true"
-                                    />
-                                </div>
-                            </template>
-
-                            <template v-if="monitor.type === 'system-service'">
-                                <div class="my-3">
-                                    <label for="system-service-name" class="form-label">
-                                        {{ $t("systemServiceName") }}
-                                    </label>
-                                    <input
-                                        id="system-service-name"
-                                        v-model="monitor.config.systemServiceName"
-                                        type="text"
-                                        class="form-control"
-                                        required
-                                        :placeholder="$root.info.runtime.platform === 'win32' ? 'Dnscache' : 'nginx'"
-                                    />
-
-                                    <div class="form-text">
-                                        <template v-if="$root.info.runtime.platform === 'linux'">
-                                            {{
-                                                $t("systemServiceDescriptionLinux", {
-                                                    service_name: monitor.config.systemServiceName || "nginx",
-                                                })
-                                            }}
-                                        </template>
-                                        <template v-else-if="$root.info.runtime.platform === 'win32'">
-                                            {{
-                                                $t("systemServiceDescriptionWindows", {
-                                                    service_name: monitor.config.systemServiceName || "Dnscache",
-                                                })
-                                            }}
-                                        </template>
-                                        <template v-else>
-                                            {{
-                                                $t("systemServiceDescription", {
-                                                    service_name: monitor.config.systemServiceName || "nginx",
-                                                })
-                                            }}
-                                        </template>
-
-                                        <template
-                                            v-if="
-                                                !monitor.config.systemServiceName ||
-                                                /^[a-zA-Z0-9_\-\.\@\ ]+$/.test(monitor.config.systemServiceName)
-                                            "
-                                        >
-                                            <div v-if="$root.info.runtime.platform === 'linux'" class="mt-2">
-                                                <div>
-                                                    <i18n-t keypath="systemServiceCommandHint" tag="span">
-                                                        <template #command>
-                                                            <code>
-                                                                systemctl is-active
-                                                                {{ monitor.config.systemServiceName || "nginx" }}
-                                                            </code>
-                                                        </template>
-                                                    </i18n-t>
-                                                </div>
-                                                <div class="text-secondary small">
-                                                    {{ $t("systemServiceExpectedOutput", ["active"]) }}
-                                                </div>
-                                            </div>
-                                            <div v-else-if="$root.info.runtime.platform === 'win32'" class="mt-2">
-                                                <div>
-                                                    <i18n-t keypath="systemServiceCommandHint" tag="span">
-                                                        <template #command>
-                                                            <code>
-                                                                (Get-Service -Name '{{
-                                                                    (
-                                                                        monitor.config.systemServiceName || "Dnscache"
-                                                                    ).replaceAll("'", "''")
-                                                                }}').Status
-                                                            </code>
-                                                        </template>
-                                                    </i18n-t>
-                                                </div>
-                                                <div class="text-secondary small">
-                                                    {{ $t("systemServiceExpectedOutput", ["Running"]) }}
-                                                </div>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </template>
-
-                            <template v-if="monitor.type === 'pm2'">
-                                <div class="my-3">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <label for="pm2-process-name" class="form-label mb-0">
-                                            {{ $t("PM2 Process") }}
-                                        </label>
-                                        <button
-                                            class="btn btn-outline-secondary btn-sm"
-                                            type="button"
-                                            :disabled="pm2ProcessLoading"
-                                            @click="loadPM2ProcessList"
-                                        >
-                                            {{ pm2ProcessLoading ? $t("Loading...") : $t("Refresh") }}
-                                        </button>
-                                    </div>
-                                    <select
-                                        v-if="pm2ProcessOptions.length > 0"
-                                        id="pm2-process-name"
-                                        v-model="monitor.config.systemServiceName"
-                                        class="form-select mt-2"
-                                        required
-                                    >
-                                        <option disabled value="">{{ $t("Select PM2 process") }}</option>
-                                        <!-- Save the PM2 name because PM2 can reassign numeric IDs after delete/recreate. -->
-                                        <option
-                                            v-for="item in pm2ProcessOptions"
-                                            :key="`${item.name}-${item.id}`"
-                                            :value="item.name"
-                                        >
-                                            {{ item.name }} (#{{ item.id }}) - {{ item.status }}
-                                        </option>
-                                    </select>
-                                    <input
-                                        v-else
-                                        id="pm2-process-name"
-                                        v-model="monitor.config.systemServiceName"
-                                        type="text"
-                                        class="form-control mt-2"
-                                        placeholder="api"
-                                        required
-                                    />
-                                    <div v-if="pm2ProcessError" class="text-danger small mt-2">
-                                        {{ pm2ProcessError }}
-                                    </div>
-
-                                    <div class="form-text">
+                                <div class="form-text">
+                                    <template v-if="$root.info.runtime.platform === 'linux'">
                                         {{
-                                            $t("pm2Description", {
-                                                service_name: monitor.config.systemServiceName || "api",
+                                            $t("systemServiceDescriptionLinux", {
+                                                service_name: monitor.config.systemServiceName || "nginx",
                                             })
                                         }}
-                                        <div class="mt-2">
-                                            <i18n-t keypath="systemServiceCommandHint" tag="span">
-                                                <template #command>
-                                                    <code>pm2 jlist</code>
-                                                </template>
-                                            </i18n-t>
+                                    </template>
+                                    <template v-else-if="$root.info.runtime.platform === 'win32'">
+                                        {{
+                                            $t("systemServiceDescriptionWindows", {
+                                                service_name: monitor.config.systemServiceName || "Dnscache",
+                                            })
+                                        }}
+                                    </template>
+                                    <template v-else>
+                                        {{
+                                            $t("systemServiceDescription", {
+                                                service_name: monitor.config.systemServiceName || "nginx",
+                                            })
+                                        }}
+                                    </template>
+
+                                    <template
+                                        v-if="
+                                            !monitor.config.systemServiceName ||
+                                            /^[a-zA-Z0-9_\-\.\@\ ]+$/.test(monitor.config.systemServiceName)
+                                        "
+                                    >
+                                        <div v-if="$root.info.runtime.platform === 'linux'" class="mt-2">
+                                            <div>
+                                                <i18n-t keypath="systemServiceCommandHint" tag="span">
+                                                    <template #command>
+                                                        <code>
+                                                            systemctl is-active
+                                                            {{ monitor.config.systemServiceName || "nginx" }}
+                                                        </code>
+                                                    </template>
+                                                </i18n-t>
+                                            </div>
+                                            <div class="text-secondary small">
+                                                {{ $t("systemServiceExpectedOutput", ["active"]) }}
+                                            </div>
                                         </div>
-                                        <div class="text-secondary small">
-                                            {{ $t("pm2ExpectedStates") }}
+                                        <div v-else-if="$root.info.runtime.platform === 'win32'" class="mt-2">
+                                            <div>
+                                                <i18n-t keypath="systemServiceCommandHint" tag="span">
+                                                    <template #command>
+                                                        <code>
+                                                            (Get-Service -Name '{{
+                                                                (
+                                                                    monitor.config.systemServiceName || "Dnscache"
+                                                                ).replaceAll("'", "''")
+                                                            }}').Status
+                                                        </code>
+                                                    </template>
+                                                </i18n-t>
+                                            </div>
+                                            <div class="text-secondary small">
+                                                {{ $t("systemServiceExpectedOutput", ["Running"]) }}
+                                            </div>
                                         </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template v-if="monitor.type === 'pm2'">
+                            <div class="my-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <label for="pm2-process-name" class="form-label mb-0">
+                                        {{ $t("PM2 Process") }}
+                                    </label>
+                                    <button
+                                        class="btn btn-outline-secondary btn-sm"
+                                        type="button"
+                                        :disabled="pm2ProcessLoading"
+                                        @click="loadPM2ProcessList"
+                                    >
+                                        {{ pm2ProcessLoading ? $t("Loading...") : $t("Refresh") }}
+                                    </button>
+                                </div>
+                                <select
+                                    v-if="pm2ProcessOptions.length > 0"
+                                    id="pm2-process-name"
+                                    v-model="monitor.config.systemServiceName"
+                                    class="form-select mt-2"
+                                    required
+                                >
+                                    <option disabled value="">{{ $t("Select PM2 process") }}</option>
+                                    <!-- Save the PM2 name because PM2 can reassign numeric IDs after delete/recreate. -->
+                                    <option
+                                        v-for="item in pm2ProcessOptions"
+                                        :key="`${item.name}-${item.id}`"
+                                        :value="item.name"
+                                    >
+                                        {{ item.name }} (#{{ item.id }}) - {{ item.status }}
+                                    </option>
+                                </select>
+                                <input
+                                    v-else
+                                    id="pm2-process-name"
+                                    v-model="monitor.config.systemServiceName"
+                                    type="text"
+                                    class="form-control mt-2"
+                                    placeholder="api"
+                                    required
+                                />
+                                <div v-if="pm2ProcessError" class="text-danger small mt-2">
+                                    {{ pm2ProcessError }}
+                                </div>
+
+                                <div class="form-text">
+                                    {{
+                                        $t("pm2Description", {
+                                            service_name: monitor.config.systemServiceName || "api",
+                                        })
+                                    }}
+                                    <div class="mt-2">
+                                        <i18n-t keypath="systemServiceCommandHint" tag="span">
+                                            <template #command>
+                                                <code>pm2 jlist</code>
+                                            </template>
+                                        </i18n-t>
+                                    </div>
+                                    <div class="text-secondary small">
+                                        {{ $t("pm2ExpectedStates") }}
                                     </div>
                                 </div>
-                            </template>
+                            </div>
+                        </template>
 
-                            <template v-if="monitor.type === 'mysql'">
-                                <div class="my-3">
-                                    <label for="mysql-password" class="form-label">{{ $t("Password") }}</label>
-                                    <!-- TODO: Rename monitor.radiusPassword to monitor.password for general use -->
-                                    <HiddenInput
-                                        id="mysql-password"
-                                        v-model="monitor.radiusPassword"
-                                        autocomplete="false"
-                                    ></HiddenInput>
-                                </div>
-                            </template>
+                        <template v-if="monitor.type === 'mysql'">
+                            <div class="my-3">
+                                <label for="mysql-password" class="form-label">{{ $t("Password") }}</label>
+                                <!-- TODO: Rename monitor.radiusPassword to monitor.password for general use -->
+                                <HiddenInput
+                                    id="mysql-password"
+                                    v-model="monitor.radiusPassword"
+                                    autocomplete="false"
+                                ></HiddenInput>
+                            </div>
+                        </template>
 
-                            <!-- SQL Server / PostgreSQL / MySQL / Oracle -->
-                            <template
-                                v-if="
-                                    monitor.type === 'sqlserver' ||
-                                    monitor.type === 'postgres' ||
-                                    monitor.type === 'mysql' ||
-                                    monitor.type === 'oracledb'
-                                "
-                            >
-                                <div class="my-3">
-                                    <label for="sqlQuery" class="form-label">{{ $t("Query") }}</label>
-                                    <textarea
-                                        id="sqlQuery"
-                                        v-model="monitor.databaseQuery"
-                                        class="form-control"
-                                        :placeholder="
-                                            $t('Example:', [
-                                                monitor.type === 'oracledb' ? 'SELECT 1 FROM DUAL' : 'SELECT 1',
-                                            ])
-                                        "
-                                    ></textarea>
-                                </div>
-                            </template>
+                        <!-- SQL Server / PostgreSQL / MySQL / Oracle -->
+                        <template
+                            v-if="
+                                monitor.type === 'sqlserver' ||
+                                monitor.type === 'postgres' ||
+                                monitor.type === 'mysql' ||
+                                monitor.type === 'oracledb'
+                            "
+                        >
+                            <div class="my-3">
+                                <label for="sqlQuery" class="form-label">{{ $t("Query") }}</label>
+                                <textarea
+                                    id="sqlQuery"
+                                    v-model="monitor.databaseQuery"
+                                    class="form-control"
+                                    :placeholder="
+                                        $t('Example:', [
+                                            monitor.type === 'oracledb' ? 'SELECT 1 FROM DUAL' : 'SELECT 1',
+                                        ])
+                                    "
+                                ></textarea>
+                            </div>
+                        </template>
 
-                            <!-- MongoDB -->
-                            <template v-if="monitor.type === 'mongodb'">
-                                <div class="my-3">
-                                    <label for="mongodbCommand" class="form-label">{{ $t("Command") }}</label>
-                                    <textarea
-                                        id="mongodbCommand"
-                                        v-model="monitor.databaseQuery"
-                                        class="form-control"
-                                        :placeholder="$t('Example:', ['{ &quot;ping&quot;: 1 }'])"
-                                    ></textarea>
-                                    <i18n-t tag="div" class="form-text" keypath="mongodbCommandDescription">
-                                        <template #documentation>
-                                            <a
-                                                href="https://www.mongodb.com/docs/manual/reference/command/"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                {{ $t("documentationOf", ["MongoDB"]) }}
-                                            </a>
-                                        </template>
-                                    </i18n-t>
-                                </div>
-                                <div class="my-3">
-                                    <label for="jsonPath" class="form-label">{{ $t("Json Query") }}</label>
-                                    <input id="jsonPath" v-model="monitor.jsonPath" type="text" class="form-control" />
-
-                                    <i18n-t tag="div" class="form-text" keypath="jsonQueryDescription">
-                                        <a href="https://jsonata.org/" target="_blank" rel="noopener noreferrer">
-                                            jsonata.org
+                        <!-- MongoDB -->
+                        <template v-if="monitor.type === 'mongodb'">
+                            <div class="my-3">
+                                <label for="mongodbCommand" class="form-label">{{ $t("Command") }}</label>
+                                <textarea
+                                    id="mongodbCommand"
+                                    v-model="monitor.databaseQuery"
+                                    class="form-control"
+                                    :placeholder="$t('Example:', ['{ &quot;ping&quot;: 1 }'])"
+                                ></textarea>
+                                <i18n-t tag="div" class="form-text" keypath="mongodbCommandDescription">
+                                    <template #documentation>
+                                        <a
+                                            href="https://www.mongodb.com/docs/manual/reference/command/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            {{ $t("documentationOf", ["MongoDB"]) }}
                                         </a>
-                                        <a href="https://try.jsonata.org/" target="_blank" rel="noopener noreferrer">
-                                            {{ $t("here") }}
-                                        </a>
-                                    </i18n-t>
-                                </div>
-                                <div class="my-3">
-                                    <label for="expectedValue" class="form-label">{{ $t("Expected Value") }}</label>
-                                    <input
-                                        id="expectedValue"
-                                        v-model="monitor.expectedValue"
-                                        type="text"
-                                        class="form-control"
-                                    />
-                                </div>
-                            </template>
+                                    </template>
+                                </i18n-t>
+                            </div>
+                            <div class="my-3">
+                                <label for="jsonPath" class="form-label">{{ $t("Json Query") }}</label>
+                                <input id="jsonPath" v-model="monitor.jsonPath" type="text" class="form-control" />
 
-                            <!-- Conditions -->
-                            <EditMonitorConditions
-                                v-if="supportsConditions && conditionVariables.length > 0"
-                                v-model="monitor.conditions"
-                                :condition-variables="conditionVariables"
-                                class="my-3"
+                                <i18n-t tag="div" class="form-text" keypath="jsonQueryDescription">
+                                    <a href="https://jsonata.org/" target="_blank" rel="noopener noreferrer">
+                                        jsonata.org
+                                    </a>
+                                    <a href="https://try.jsonata.org/" target="_blank" rel="noopener noreferrer">
+                                        {{ $t("here") }}
+                                    </a>
+                                </i18n-t>
+                            </div>
+                            <div class="my-3">
+                                <label for="expectedValue" class="form-label">{{ $t("Expected Value") }}</label>
+                                <input
+                                    id="expectedValue"
+                                    v-model="monitor.expectedValue"
+                                    type="text"
+                                    class="form-control"
+                                />
+                            </div>
+                        </template>
+
+                        <!-- Conditions -->
+                        <EditMonitorConditions
+                            v-if="supportsConditions && conditionVariables.length > 0"
+                            v-model="monitor.conditions"
+                            :condition-variables="conditionVariables"
+                            class="my-3"
+                        />
+
+                        <!-- Interval -->
+                        <div class="my-3">
+                            <label for="interval" class="form-label">
+                                {{ $t("Heartbeat Interval") }} ({{ $t("checkEverySecond", [monitor.interval]) }})
+                            </label>
+                            <input
+                                id="interval"
+                                v-model="monitor.interval"
+                                type="number"
+                                class="form-control"
+                                required
+                                :min="minInterval"
+                                step="1"
+                                @focus="lowIntervalConfirmation.editedValue = true"
+                                @blur="finishUpdateInterval"
                             />
 
-                            <!-- Interval -->
-                            <div class="my-3">
-                                <label for="interval" class="form-label">
-                                    {{ $t("Heartbeat Interval") }} ({{ $t("checkEverySecond", [monitor.interval]) }})
+                            <div class="form-text">
+                                {{ monitor.humanReadableInterval }}
+                            </div>
+
+                            <div v-if="monitor.interval < 20" class="form-text">
+                                {{ $t("minimumIntervalWarning") }}
+                            </div>
+                        </div>
+
+                        <div class="my-3">
+                            <label for="maxRetries" class="form-label">{{ $t("Retries") }}</label>
+                            <input
+                                id="maxRetries"
+                                v-model="monitor.maxretries"
+                                type="number"
+                                class="form-control"
+                                required
+                                min="0"
+                                step="1"
+                            />
+                            <div class="form-text">
+                                {{ $t("retriesDescription") }}
+                            </div>
+                        </div>
+
+                        <div v-if="monitor.maxretries" class="my-3">
+                            <label for="retry-interval" class="form-label">
+                                {{ $t("Heartbeat Retry Interval") }}
+                                <span>({{ $t("retryCheckEverySecond", [monitor.retryInterval]) }})</span>
+                            </label>
+                            <input
+                                id="retry-interval"
+                                v-model="monitor.retryInterval"
+                                type="number"
+                                class="form-control"
+                                required
+                                :min="minInterval"
+                                step="1"
+                                @focus="lowIntervalConfirmation.editedValue = true"
+                            />
+                            <div v-if="monitor.retryInterval < 20" class="form-text">
+                                {{ $t("minimumIntervalWarning") }}
+                            </div>
+                        </div>
+
+                        <!-- Retry only on status code failure: JSON Query only -->
+                        <div v-if="monitor.type === 'json-query' && monitor.maxretries > 0" class="my-3">
+                            <div class="form-check">
+                                <input
+                                    id="retry-only-on-status-code-failure"
+                                    v-model="monitor.retryOnlyOnStatusCodeFailure"
+                                    type="checkbox"
+                                    class="form-check-input"
+                                />
+                                <label for="retry-only-on-status-code-failure" class="form-check-label">
+                                    {{ $t("Only retry if status code check fails") }}
                                 </label>
-                                <input
-                                    id="interval"
-                                    v-model="monitor.interval"
-                                    type="number"
-                                    class="form-control"
-                                    required
-                                    :min="minInterval"
-                                    step="1"
-                                    @focus="lowIntervalConfirmation.editedValue = true"
-                                    @blur="finishUpdateInterval"
-                                />
-
-                                <div class="form-text">
-                                    {{ monitor.humanReadableInterval }}
-                                </div>
-
-                                <div v-if="monitor.interval < 20" class="form-text">
-                                    {{ $t("minimumIntervalWarning") }}
-                                </div>
                             </div>
-
-                            <div class="my-3">
-                                <label for="maxRetries" class="form-label">{{ $t("Retries") }}</label>
-                                <input
-                                    id="maxRetries"
-                                    v-model="monitor.maxretries"
-                                    type="number"
-                                    class="form-control"
-                                    required
-                                    min="0"
-                                    step="1"
-                                />
-                                <div class="form-text">
-                                    {{ $t("retriesDescription") }}
-                                </div>
+                            <div class="form-text">
+                                {{ $t("retryOnlyOnStatusCodeFailureDescription") }}
                             </div>
+                        </div>
 
-                            <div v-if="monitor.maxretries" class="my-3">
-                                <label for="retry-interval" class="form-label">
-                                    {{ $t("Heartbeat Retry Interval") }}
-                                    <span>({{ $t("retryCheckEverySecond", [monitor.retryInterval]) }})</span>
-                                </label>
-                                <input
-                                    id="retry-interval"
-                                    v-model="monitor.retryInterval"
-                                    type="number"
-                                    class="form-control"
-                                    required
-                                    :min="minInterval"
-                                    step="1"
-                                    @focus="lowIntervalConfirmation.editedValue = true"
-                                />
-                                <div v-if="monitor.retryInterval < 20" class="form-text">
-                                    {{ $t("minimumIntervalWarning") }}
-                                </div>
+                        <!-- Timeout: HTTP / JSON query / Keyword / Ping / RabbitMQ / SNMP / Websocket Upgrade only -->
+                        <div
+                            v-if="
+                                monitor.type === 'http' ||
+                                monitor.type === 'json-query' ||
+                                monitor.type === 'keyword' ||
+                                monitor.type === 'ping' ||
+                                monitor.type === 'rabbitmq' ||
+                                monitor.type === 'snmp' ||
+                                monitor.type === 'websocket-upgrade' ||
+                                monitor.type === 'kafka-producer'
+                            "
+                            class="my-3"
+                        >
+                            <label for="timeout" class="form-label">
+                                {{
+                                    monitor.type === "ping"
+                                        ? $t("pingGlobalTimeoutLabel")
+                                        : monitor.type === "kafka-producer"
+                                          ? $t("Connection Timeout")
+                                          : $t("Request Timeout")
+                                }}
+                                <span v-if="monitor.type !== 'ping'">
+                                    ({{ $t("timeoutAfter", [monitor.timeout || clampTimeout(monitor.interval)]) }})
+                                </span>
+                            </label>
+                            <input
+                                id="timeout"
+                                v-model="monitor.timeout"
+                                type="number"
+                                class="form-control"
+                                :min="timeoutMin"
+                                :max="timeoutMax"
+                                :step="timeoutStep"
+                                required
+                            />
+                            <div v-if="monitor.type === 'ping'" class="form-text">
+                                {{ $t("pingGlobalTimeoutDescription") }}
                             </div>
+                        </div>
 
-                            <!-- Retry only on status code failure: JSON Query only -->
-                            <div v-if="monitor.type === 'json-query' && monitor.maxretries > 0" class="my-3">
-                                <div class="form-check">
-                                    <input
-                                        id="retry-only-on-status-code-failure"
-                                        v-model="monitor.retryOnlyOnStatusCodeFailure"
-                                        type="checkbox"
-                                        class="form-check-input"
-                                    />
-                                    <label for="retry-only-on-status-code-failure" class="form-check-label">
-                                        {{ $t("Only retry if status code check fails") }}
-                                    </label>
-                                </div>
-                                <div class="form-text">
-                                    {{ $t("retryOnlyOnStatusCodeFailureDescription") }}
-                                </div>
+                        <div class="my-3">
+                            <label for="resend-interval" class="form-label">
+                                {{ $t("Resend Notification if Down X times consecutively") }}
+                                <span v-if="monitor.resendInterval > 0">
+                                    ({{ $t("resendEveryXTimes", [monitor.resendInterval]) }})
+                                </span>
+                                <span v-else>({{ $t("resendDisabled") }})</span>
+                            </label>
+                            <input
+                                id="resend-interval"
+                                v-model="monitor.resendInterval"
+                                type="number"
+                                class="form-control"
+                                required
+                                min="0"
+                                step="1"
+                            />
+                        </div>
+
+                        <h2 v-if="monitor.type !== 'push'" class="mt-5 mb-2">{{ $t("Advanced") }}</h2>
+
+                        <div
+                            v-if="
+                                monitor.type === 'http' ||
+                                monitor.type === 'keyword' ||
+                                monitor.type === 'json-query' ||
+                                (monitor.type === 'globalping' && monitor.subtype === 'http')
+                            "
+                            class="my-3 form-check"
+                            :title="monitor.ignoreTls ? $t('ignoredTLSError') : ''"
+                        >
+                            <input
+                                id="expiry-notification"
+                                v-model="monitor.expiryNotification"
+                                class="form-check-input"
+                                type="checkbox"
+                                :disabled="monitor.ignoreTls"
+                            />
+                            <label class="form-check-label" for="expiry-notification">
+                                {{ $t("Certificate Expiry Notification") }}
+                            </label>
+                            <div class="form-text">
+                                {{ $t("certificateExpiryNotificationHelp") }}
                             </div>
+                        </div>
 
-                            <!-- Timeout: HTTP / JSON query / Keyword / Ping / RabbitMQ / SNMP / Websocket Upgrade only -->
+                        <!-- Screenshot Delay - Real Browser only -->
+                        <div v-if="monitor.type === 'real-browser'" class="my-3">
+                            <label for="screenshot-delay" class="form-label">
+                                {{
+                                    $t("Screenshot Delay", {
+                                        milliseconds: $t("milliseconds", monitor.screenshot_delay),
+                                    })
+                                }}
+                            </label>
+                            <input
+                                id="screenshot-delay"
+                                v-model="monitor.screenshot_delay"
+                                type="number"
+                                class="form-control"
+                                min="0"
+                                :max="Math.floor(monitor.interval * 1000 * 0.5)"
+                                step="100"
+                            />
+                            <div class="form-text">
+                                {{
+                                    $t("screenshotDelayDescription", {
+                                        maxValueMs: Math.floor(monitor.interval * 1000 * 0.5),
+                                    })
+                                }}
+                            </div>
+                            <div v-if="monitor.screenshot_delay" class="form-text text-warning">
+                                {{ $t("screenshotDelayWarning") }}
+                            </div>
+                        </div>
+
+                        <div v-if="showDomainExpiryNotification" class="my-3 form-check">
+                            <input
+                                id="domain-expiry-notification"
+                                v-model="monitor.domainExpiryNotification"
+                                class="form-check-input"
+                                type="checkbox"
+                            />
+                            <label class="form-check-label" for="domain-expiry-notification">
+                                {{ $t("labelDomainNameExpiryNotification") }}
+                            </label>
+                            <div class="form-text">
+                                {{ $t("domainExpiryNotificationHelp") }}
+                            </div>
                             <div
-                                v-if="
-                                    monitor.type === 'http' ||
-                                    monitor.type === 'json-query' ||
-                                    monitor.type === 'keyword' ||
-                                    monitor.type === 'ping' ||
-                                    monitor.type === 'rabbitmq' ||
-                                    monitor.type === 'snmp' ||
-                                    monitor.type === 'websocket-upgrade' ||
-                                    monitor.type === 'kafka-producer'
-                                "
-                                class="my-3"
+                                v-if="monitor.domainExpiryNotification && domainExpiryUnsupportedReason"
+                                class="form-text"
                             >
-                                <label for="timeout" class="form-label">
-                                    {{
-                                        monitor.type === "ping"
-                                            ? $t("pingGlobalTimeoutLabel")
-                                            : monitor.type === "kafka-producer"
-                                              ? $t("Connection Timeout")
-                                              : $t("Request Timeout")
-                                    }}
-                                    <span v-if="monitor.type !== 'ping'">
-                                        ({{ $t("timeoutAfter", [monitor.timeout || clampTimeout(monitor.interval)]) }})
-                                    </span>
-                                </label>
-                                <input
-                                    id="timeout"
-                                    v-model="monitor.timeout"
-                                    type="number"
-                                    class="form-control"
-                                    :min="timeoutMin"
-                                    :max="timeoutMax"
-                                    :step="timeoutStep"
-                                    required
-                                />
-                                <div v-if="monitor.type === 'ping'" class="form-text">
-                                    {{ $t("pingGlobalTimeoutDescription") }}
-                                </div>
+                                {{ domainExpiryUnsupportedReason }}
                             </div>
-
-                            <div class="my-3">
-                                <label for="resend-interval" class="form-label">
-                                    {{ $t("Resend Notification if Down X times consecutively") }}
-                                    <span v-if="monitor.resendInterval > 0">
-                                        ({{ $t("resendEveryXTimes", [monitor.resendInterval]) }})
-                                    </span>
-                                    <span v-else>({{ $t("resendDisabled") }})</span>
-                                </label>
-                                <input
-                                    id="resend-interval"
-                                    v-model="monitor.resendInterval"
-                                    type="number"
-                                    class="form-control"
-                                    required
-                                    min="0"
-                                    step="1"
-                                />
-                            </div>
-
-                            <h2 v-if="monitor.type !== 'push'" class="mt-5 mb-2">{{ $t("Advanced") }}</h2>
-
-                            <div
-                                v-if="
-                                    monitor.type === 'http' ||
-                                    monitor.type === 'keyword' ||
-                                    monitor.type === 'json-query' ||
-                                    (monitor.type === 'globalping' && monitor.subtype === 'http')
-                                "
-                                class="my-3 form-check"
-                                :title="monitor.ignoreTls ? $t('ignoredTLSError') : ''"
+                        </div>
+                        <div v-if="monitor.type === 'websocket-upgrade'" class="my-3 form-check">
+                            <input
+                                id="wsIgnoreSecWebsocketAcceptHeader"
+                                v-model="monitor.wsIgnoreSecWebsocketAcceptHeader"
+                                class="form-check-input"
+                                type="checkbox"
+                            />
+                            <i18n-t
+                                tag="label"
+                                keypath="Ignore Sec-WebSocket-Accept header"
+                                class="form-check-label"
+                                for="wsIgnoreSecWebsocketAcceptHeader"
                             >
-                                <input
-                                    id="expiry-notification"
-                                    v-model="monitor.expiryNotification"
-                                    class="form-check-input"
-                                    type="checkbox"
-                                    :disabled="monitor.ignoreTls"
-                                />
-                                <label class="form-check-label" for="expiry-notification">
-                                    {{ $t("Certificate Expiry Notification") }}
-                                </label>
-                                <div class="form-text">
-                                    {{ $t("certificateExpiryNotificationHelp") }}
-                                </div>
+                                <code>Sec-Websocket-Accept</code>
+                            </i18n-t>
+                            <div class="form-text">
+                                {{ $t("ignoreSecWebsocketAcceptHeaderDescription") }}
                             </div>
+                        </div>
 
-                            <!-- Screenshot Delay - Real Browser only -->
-                            <div v-if="monitor.type === 'real-browser'" class="my-3">
-                                <label for="screenshot-delay" class="form-label">
-                                    {{
-                                        $t("Screenshot Delay", {
-                                            milliseconds: $t("milliseconds", monitor.screenshot_delay),
-                                        })
-                                    }}
-                                </label>
-                                <input
-                                    id="screenshot-delay"
-                                    v-model="monitor.screenshot_delay"
-                                    type="number"
-                                    class="form-control"
-                                    min="0"
-                                    :max="Math.floor(monitor.interval * 1000 * 0.5)"
-                                    step="100"
-                                />
-                                <div class="form-text">
-                                    {{
-                                        $t("screenshotDelayDescription", {
-                                            maxValueMs: Math.floor(monitor.interval * 1000 * 0.5),
-                                        })
-                                    }}
-                                </div>
-                                <div v-if="monitor.screenshot_delay" class="form-text text-warning">
-                                    {{ $t("screenshotDelayWarning") }}
-                                </div>
-                            </div>
+                        <div
+                            v-if="
+                                monitor.type === 'http' ||
+                                monitor.type === 'keyword' ||
+                                monitor.type === 'json-query' ||
+                                monitor.type === 'redis' ||
+                                (monitor.type === 'globalping' && monitor.subtype === 'http')
+                            "
+                            class="my-3 form-check"
+                        >
+                            <input
+                                id="ignore-tls"
+                                v-model="monitor.ignoreTls"
+                                class="form-check-input"
+                                type="checkbox"
+                                value=""
+                            />
+                            <label class="form-check-label" for="ignore-tls">
+                                {{ monitor.type === "redis" ? $t("ignoreTLSErrorGeneral") : $t("ignoreTLSError") }}
+                            </label>
+                        </div>
 
-                            <div v-if="showDomainExpiryNotification" class="my-3 form-check">
-                                <input
-                                    id="domain-expiry-notification"
-                                    v-model="monitor.domainExpiryNotification"
-                                    class="form-check-input"
-                                    type="checkbox"
-                                />
-                                <label class="form-check-label" for="domain-expiry-notification">
-                                    {{ $t("labelDomainNameExpiryNotification") }}
-                                </label>
-                                <div class="form-text">
-                                    {{ $t("domainExpiryNotificationHelp") }}
-                                </div>
-                                <div
-                                    v-if="monitor.domainExpiryNotification && domainExpiryUnsupportedReason"
-                                    class="form-text"
-                                >
-                                    {{ domainExpiryUnsupportedReason }}
-                                </div>
-                            </div>
-                            <div v-if="monitor.type === 'websocket-upgrade'" class="my-3 form-check">
-                                <input
-                                    id="wsIgnoreSecWebsocketAcceptHeader"
-                                    v-model="monitor.wsIgnoreSecWebsocketAcceptHeader"
-                                    class="form-check-input"
-                                    type="checkbox"
-                                />
+                        <div
+                            v-if="
+                                monitor.type === 'http' ||
+                                monitor.type === 'keyword' ||
+                                monitor.type === 'json-query' ||
+                                (monitor.type === 'globalping' && monitor.subtype === 'http')
+                            "
+                            class="my-3 form-check"
+                        >
+                            <input
+                                id="cache-bust"
+                                v-model="monitor.cacheBust"
+                                class="form-check-input"
+                                type="checkbox"
+                                value=""
+                            />
+                            <label class="form-check-label" for="cache-bust">
                                 <i18n-t
                                     tag="label"
-                                    keypath="Ignore Sec-WebSocket-Accept header"
+                                    keypath="cacheBusterParam"
                                     class="form-check-label"
-                                    for="wsIgnoreSecWebsocketAcceptHeader"
+                                    for="cache-bust"
                                 >
-                                    <code>Sec-Websocket-Accept</code>
+                                    <code>uptime_kuma_cachebuster</code>
                                 </i18n-t>
-                                <div class="form-text">
-                                    {{ $t("ignoreSecWebsocketAcceptHeaderDescription") }}
-                                </div>
+                            </label>
+                            <div class="form-text">
+                                {{ $t("cacheBusterParamDescription") }}
                             </div>
+                        </div>
 
+                        <div class="my-3 form-check">
+                            <input
+                                id="upside-down"
+                                v-model="monitor.upsideDown"
+                                class="form-check-input"
+                                type="checkbox"
+                            />
+                            <label class="form-check-label" for="upside-down">
+                                {{ $t("Upside Down Mode") }}
+                            </label>
+                            <div class="form-text">
+                                {{ $t("upsideDownModeDescription") }}
+                            </div>
+                        </div>
+
+                        <div v-if="monitor.type === 'gamedig'" class="my-3 form-check">
+                            <input
+                                id="gamedig-guess-port"
+                                v-model="monitor.gamedigGivenPortOnly"
+                                :true-value="false"
+                                :false-value="true"
+                                class="form-check-input"
+                                type="checkbox"
+                            />
+                            <label class="form-check-label" for="gamedig-guess-port">
+                                {{ $t("gamedigGuessPort") }}
+                            </label>
+                            <div class="form-text">
+                                {{ $t("gamedigGuessPortDescription") }}
+                            </div>
+                        </div>
+
+                        <!-- Max Packets / Count -->
+                        <div
+                            v-if="
+                                monitor.type === 'ping' || (monitor.type === 'globalping' && monitor.subtype === 'ping')
+                            "
+                            class="my-3"
+                        >
+                            <label for="ping-count" class="form-label">{{ $t("pingCountLabel") }}</label>
+                            <input
+                                id="ping-count"
+                                v-model="monitor.ping_count"
+                                type="number"
+                                class="form-control"
+                                required
+                                min="1"
+                                max="100"
+                                step="1"
+                            />
+                            <div class="form-text">
+                                {{ $t("pingCountDescription") }}
+                            </div>
+                        </div>
+
+                        <!-- Numeric Output -->
+                        <div v-if="monitor.type === 'ping'" class="my-3 form-check">
+                            <input
+                                id="ping_numeric"
+                                v-model="monitor.ping_numeric"
+                                type="checkbox"
+                                class="form-check-input"
+                                :checked="monitor.ping_numeric"
+                            />
+                            <label class="form-check-label" for="ping_numeric">
+                                {{ $t("pingNumericLabel") }}
+                            </label>
+                            <div class="form-text">
+                                {{ $t("pingNumericDescription") }}
+                            </div>
+                        </div>
+
+                        <!-- Packet size -->
+                        <div v-if="monitor.type === 'ping'" class="my-3">
+                            <label for="packet-size" class="form-label">{{ $t("Packet Size") }}</label>
+                            <input
+                                id="packet-size"
+                                v-model="monitor.packetSize"
+                                type="number"
+                                class="form-control"
+                                required
+                                min="1"
+                                :max="65500"
+                                step="1"
+                            />
                             <div
-                                v-if="
-                                    monitor.type === 'http' ||
-                                    monitor.type === 'keyword' ||
-                                    monitor.type === 'json-query' ||
-                                    monitor.type === 'redis' ||
-                                    (monitor.type === 'globalping' && monitor.subtype === 'http')
-                                "
-                                class="my-3 form-check"
+                                v-if="$root.info.runtime.platform === 'linux' && monitor.packetSize < 16"
+                                class="form-text text-warning"
                             >
-                                <input
-                                    id="ignore-tls"
-                                    v-model="monitor.ignoreTls"
-                                    class="form-check-input"
-                                    type="checkbox"
-                                    value=""
-                                />
-                                <label class="form-check-label" for="ignore-tls">
-                                    {{ monitor.type === "redis" ? $t("ignoreTLSErrorGeneral") : $t("ignoreTLSError") }}
-                                </label>
+                                {{ $t("pingPacketSizeWarning") }}
                             </div>
+                        </div>
 
-                            <div
-                                v-if="
-                                    monitor.type === 'http' ||
-                                    monitor.type === 'keyword' ||
-                                    monitor.type === 'json-query' ||
-                                    (monitor.type === 'globalping' && monitor.subtype === 'http')
-                                "
-                                class="my-3 form-check"
-                            >
-                                <input
-                                    id="cache-bust"
-                                    v-model="monitor.cacheBust"
-                                    class="form-check-input"
-                                    type="checkbox"
-                                    value=""
-                                />
-                                <label class="form-check-label" for="cache-bust">
-                                    <i18n-t
-                                        tag="label"
-                                        keypath="cacheBusterParam"
-                                        class="form-check-label"
-                                        for="cache-bust"
-                                    >
-                                        <code>uptime_kuma_cachebuster</code>
-                                    </i18n-t>
+                        <!-- per-request timeout -->
+                        <div v-if="monitor.type === 'ping'" class="my-3">
+                            <label for="ping_per_request_timeout" class="form-label">
+                                {{ $t("pingPerRequestTimeoutLabel") }}
+                            </label>
+                            <input
+                                id="ping_per_request_timeout"
+                                v-model="monitor.ping_per_request_timeout"
+                                type="number"
+                                class="form-control"
+                                required
+                                min="0"
+                                :max="pingPerRequestTimeoutMax"
+                                step="1"
+                            />
+                            <div class="form-text">
+                                {{ $t("pingPerRequestTimeoutDescription") }}
+                            </div>
+                        </div>
+
+                        <!-- Websocket Upgrade only -->
+                        <template v-if="monitor.type === 'websocket-upgrade'">
+                            <div class="my-3">
+                                <label for="acceptedStatusCodes" class="form-label">
+                                    {{ $t("Accepted Status Codes") }}
                                 </label>
+
+                                <VueMultiselect
+                                    id="acceptedStatusCodes"
+                                    v-model="monitor.accepted_statuscodes"
+                                    :options="acceptedWebsocketCodeOptions"
+                                    :multiple="true"
+                                    :close-on-select="false"
+                                    :clear-on-select="false"
+                                    :preserve-search="true"
+                                    :placeholder="$t('Pick Accepted Status Codes...')"
+                                    :preselect-first="false"
+                                    :max-height="600"
+                                    :taggable="true"
+                                    @tag="addAcceptedStatusCode"
+                                ></VueMultiselect>
+
                                 <div class="form-text">
-                                    {{ $t("cacheBusterParamDescription") }}
+                                    {{ $t("acceptedStatusCodesDescription") }}
                                 </div>
+                                <i18n-t tag="div" class="form-text" keypath="wsCodeDescription">
+                                    <template #rfc6455>
+                                        <a
+                                            href="https://datatracker.ietf.org/doc/html/rfc6455#section-7.4"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            RFC 6455
+                                        </a>
+                                    </template>
+                                </i18n-t>
                             </div>
+                        </template>
 
-                            <div class="my-3 form-check">
+                        <!-- HTTP / Keyword only -->
+                        <template
+                            v-if="
+                                monitor.type === 'http' ||
+                                monitor.type === 'keyword' ||
+                                monitor.type === 'json-query' ||
+                                monitor.type === 'grpc-keyword'
+                            "
+                        >
+                            <div class="my-3">
+                                <label for="maxRedirects" class="form-label">{{ $t("Max. Redirects") }}</label>
                                 <input
-                                    id="upside-down"
-                                    v-model="monitor.upsideDown"
-                                    class="form-check-input"
-                                    type="checkbox"
-                                />
-                                <label class="form-check-label" for="upside-down">
-                                    {{ $t("Upside Down Mode") }}
-                                </label>
-                                <div class="form-text">
-                                    {{ $t("upsideDownModeDescription") }}
-                                </div>
-                            </div>
-
-                            <div v-if="monitor.type === 'gamedig'" class="my-3 form-check">
-                                <input
-                                    id="gamedig-guess-port"
-                                    v-model="monitor.gamedigGivenPortOnly"
-                                    :true-value="false"
-                                    :false-value="true"
-                                    class="form-check-input"
-                                    type="checkbox"
-                                />
-                                <label class="form-check-label" for="gamedig-guess-port">
-                                    {{ $t("gamedigGuessPort") }}
-                                </label>
-                                <div class="form-text">
-                                    {{ $t("gamedigGuessPortDescription") }}
-                                </div>
-                            </div>
-
-                            <!-- Max Packets / Count -->
-                            <div
-                                v-if="
-                                    monitor.type === 'ping' ||
-                                    (monitor.type === 'globalping' && monitor.subtype === 'ping')
-                                "
-                                class="my-3"
-                            >
-                                <label for="ping-count" class="form-label">{{ $t("pingCountLabel") }}</label>
-                                <input
-                                    id="ping-count"
-                                    v-model="monitor.ping_count"
-                                    type="number"
-                                    class="form-control"
-                                    required
-                                    min="1"
-                                    max="100"
-                                    step="1"
-                                />
-                                <div class="form-text">
-                                    {{ $t("pingCountDescription") }}
-                                </div>
-                            </div>
-
-                            <!-- Numeric Output -->
-                            <div v-if="monitor.type === 'ping'" class="my-3 form-check">
-                                <input
-                                    id="ping_numeric"
-                                    v-model="monitor.ping_numeric"
-                                    type="checkbox"
-                                    class="form-check-input"
-                                    :checked="monitor.ping_numeric"
-                                />
-                                <label class="form-check-label" for="ping_numeric">
-                                    {{ $t("pingNumericLabel") }}
-                                </label>
-                                <div class="form-text">
-                                    {{ $t("pingNumericDescription") }}
-                                </div>
-                            </div>
-
-                            <!-- Packet size -->
-                            <div v-if="monitor.type === 'ping'" class="my-3">
-                                <label for="packet-size" class="form-label">{{ $t("Packet Size") }}</label>
-                                <input
-                                    id="packet-size"
-                                    v-model="monitor.packetSize"
-                                    type="number"
-                                    class="form-control"
-                                    required
-                                    min="1"
-                                    :max="65500"
-                                    step="1"
-                                />
-                                <div
-                                    v-if="$root.info.runtime.platform === 'linux' && monitor.packetSize < 16"
-                                    class="form-text text-warning"
-                                >
-                                    {{ $t("pingPacketSizeWarning") }}
-                                </div>
-                            </div>
-
-                            <!-- per-request timeout -->
-                            <div v-if="monitor.type === 'ping'" class="my-3">
-                                <label for="ping_per_request_timeout" class="form-label">
-                                    {{ $t("pingPerRequestTimeoutLabel") }}
-                                </label>
-                                <input
-                                    id="ping_per_request_timeout"
-                                    v-model="monitor.ping_per_request_timeout"
+                                    id="maxRedirects"
+                                    v-model="monitor.maxredirects"
                                     type="number"
                                     class="form-control"
                                     required
                                     min="0"
-                                    :max="pingPerRequestTimeoutMax"
                                     step="1"
                                 />
                                 <div class="form-text">
-                                    {{ $t("pingPerRequestTimeoutDescription") }}
+                                    {{ $t("maxRedirectDescription") }}
                                 </div>
                             </div>
 
-                            <!-- Websocket Upgrade only -->
-                            <template v-if="monitor.type === 'websocket-upgrade'">
-                                <div class="my-3">
-                                    <label for="acceptedStatusCodes" class="form-label">
-                                        {{ $t("Accepted Status Codes") }}
-                                    </label>
-
-                                    <VueMultiselect
-                                        id="acceptedStatusCodes"
-                                        v-model="monitor.accepted_statuscodes"
-                                        :options="acceptedWebsocketCodeOptions"
-                                        :multiple="true"
-                                        :close-on-select="false"
-                                        :clear-on-select="false"
-                                        :preserve-search="true"
-                                        :placeholder="$t('Pick Accepted Status Codes...')"
-                                        :preselect-first="false"
-                                        :max-height="600"
-                                        :taggable="true"
-                                        @tag="addAcceptedStatusCode"
-                                    ></VueMultiselect>
-
-                                    <div class="form-text">
-                                        {{ $t("acceptedStatusCodesDescription") }}
-                                    </div>
-                                    <i18n-t tag="div" class="form-text" keypath="wsCodeDescription">
-                                        <template #rfc6455>
-                                            <a
-                                                href="https://datatracker.ietf.org/doc/html/rfc6455#section-7.4"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                RFC 6455
-                                            </a>
-                                        </template>
-                                    </i18n-t>
-                                </div>
-                            </template>
-
-                            <!-- HTTP / Keyword only -->
-                            <template
+                            <div
                                 v-if="
                                     monitor.type === 'http' ||
                                     monitor.type === 'keyword' ||
-                                    monitor.type === 'json-query' ||
-                                    monitor.type === 'grpc-keyword'
+                                    monitor.type === 'json-query'
                                 "
+                                class="my-3"
                             >
-                                <div class="my-3">
-                                    <label for="maxRedirects" class="form-label">{{ $t("Max. Redirects") }}</label>
+                                <div class="form-check">
                                     <input
-                                        id="maxRedirects"
-                                        v-model="monitor.maxredirects"
-                                        type="number"
-                                        class="form-control"
-                                        required
-                                        min="0"
-                                        step="1"
+                                        id="saveErrorResponse"
+                                        v-model="monitor.saveErrorResponse"
+                                        class="form-check-input"
+                                        type="checkbox"
                                     />
-                                    <div class="form-text">
-                                        {{ $t("maxRedirectDescription") }}
-                                    </div>
-                                </div>
-
-                                <div
-                                    v-if="
-                                        monitor.type === 'http' ||
-                                        monitor.type === 'keyword' ||
-                                        monitor.type === 'json-query'
-                                    "
-                                    class="my-3"
-                                >
-                                    <div class="form-check">
-                                        <input
-                                            id="saveErrorResponse"
-                                            v-model="monitor.saveErrorResponse"
-                                            class="form-check-input"
-                                            type="checkbox"
-                                        />
-                                        <label class="form-check-label" for="saveErrorResponse">
-                                            {{ $t("saveErrorResponseForNotifications") }}
-                                        </label>
-                                    </div>
-                                    <div class="form-text">
-                                        <i18n-t keypath="saveResponseDescription" tag="div" class="form-text">
-                                            <template #templateVariable>
-                                                <code>heartbeatJSON.response</code>
-                                            </template>
-                                        </i18n-t>
-                                    </div>
-                                </div>
-
-                                <div
-                                    v-if="
-                                        (monitor.type === 'http' ||
-                                            monitor.type === 'keyword' ||
-                                            monitor.type === 'json-query') &&
-                                        monitor.saveErrorResponse
-                                    "
-                                    class="my-3"
-                                >
-                                    <div class="form-check">
-                                        <input
-                                            id="saveResponse"
-                                            v-model="monitor.saveResponse"
-                                            class="form-check-input"
-                                            type="checkbox"
-                                        />
-                                        <label class="form-check-label" for="saveResponse">
-                                            {{ $t("saveResponseForNotifications") }}
-                                        </label>
-                                    </div>
-                                    <div class="form-text">
-                                        <i18n-t keypath="saveResponseDescription" tag="div" class="form-text">
-                                            <template #templateVariable>
-                                                <code>heartbeatJSON.response</code>
-                                            </template>
-                                        </i18n-t>
-                                    </div>
-                                </div>
-
-                                <div
-                                    v-if="
-                                        (monitor.type === 'http' ||
-                                            monitor.type === 'keyword' ||
-                                            monitor.type === 'json-query') &&
-                                        (monitor.saveResponse || monitor.saveErrorResponse)
-                                    "
-                                    class="my-3"
-                                >
-                                    <label for="responseMaxLength" class="form-label">
-                                        {{ $t("responseMaxLength") }}
+                                    <label class="form-check-label" for="saveErrorResponse">
+                                        {{ $t("saveErrorResponseForNotifications") }}
                                     </label>
-                                    <input
-                                        id="responseMaxLength"
-                                        v-model="monitor.responseMaxLength"
-                                        type="number"
-                                        class="form-control"
-                                        required
-                                        min="0"
-                                        step="1"
-                                    />
-                                    <div class="form-text">
-                                        {{ $t("responseMaxLengthDescription") }}
-                                    </div>
                                 </div>
-
-                                <div class="my-3">
-                                    <label for="acceptedStatusCodes" class="form-label">
-                                        {{ $t("Accepted Status Codes") }}
-                                    </label>
-
-                                    <VueMultiselect
-                                        id="acceptedStatusCodes"
-                                        v-model="monitor.accepted_statuscodes"
-                                        :options="acceptedStatusCodeOptions"
-                                        :multiple="true"
-                                        :close-on-select="false"
-                                        :clear-on-select="false"
-                                        :preserve-search="true"
-                                        :placeholder="$t('Pick Accepted Status Codes...')"
-                                        :preselect-first="false"
-                                        :max-height="600"
-                                        :taggable="true"
-                                        @tag="addAcceptedStatusCode"
-                                    ></VueMultiselect>
-
-                                    <div class="form-text">
-                                        {{ $t("acceptedStatusCodesDescription") }}
-                                    </div>
-                                </div>
-
-                                <div class="my-3">
-                                    <label for="ipFamily" class="form-label">{{ $t("Ip Family") }}</label>
-                                    <select id="ipFamily" v-model="monitor.ipFamily" class="form-select">
-                                        <option :value="null">{{ $t("auto-select") }}</option>
-                                        <option value="ipv4">IPv4</option>
-                                        <option value="ipv6">IPv6</option>
-                                    </select>
-                                    <i18n-t
-                                        v-if="monitor.ipFamily == null"
-                                        keypath="ipFamilyDescriptionAutoSelect"
-                                        tag="div"
-                                        class="form-text"
-                                    >
-                                        <template #happyEyeballs>
-                                            <a href="https://en.wikipedia.org/wiki/Happy_Eyeballs" target="_blank">
-                                                {{ $t("Happy Eyeballs algorithm") }}
-                                            </a>
+                                <div class="form-text">
+                                    <i18n-t keypath="saveResponseDescription" tag="div" class="form-text">
+                                        <template #templateVariable>
+                                            <code>heartbeatJSON.response</code>
                                         </template>
                                     </i18n-t>
                                 </div>
-                            </template>
+                            </div>
 
-                            <!-- Globalping Accepted Status Codes -->
-                            <div v-if="monitor.type === 'globalping' && monitor.subtype === 'http'" class="my-3">
+                            <div
+                                v-if="
+                                    (monitor.type === 'http' ||
+                                        monitor.type === 'keyword' ||
+                                        monitor.type === 'json-query') &&
+                                    monitor.saveErrorResponse
+                                "
+                                class="my-3"
+                            >
+                                <div class="form-check">
+                                    <input
+                                        id="saveResponse"
+                                        v-model="monitor.saveResponse"
+                                        class="form-check-input"
+                                        type="checkbox"
+                                    />
+                                    <label class="form-check-label" for="saveResponse">
+                                        {{ $t("saveResponseForNotifications") }}
+                                    </label>
+                                </div>
+                                <div class="form-text">
+                                    <i18n-t keypath="saveResponseDescription" tag="div" class="form-text">
+                                        <template #templateVariable>
+                                            <code>heartbeatJSON.response</code>
+                                        </template>
+                                    </i18n-t>
+                                </div>
+                            </div>
+
+                            <div
+                                v-if="
+                                    (monitor.type === 'http' ||
+                                        monitor.type === 'keyword' ||
+                                        monitor.type === 'json-query') &&
+                                    (monitor.saveResponse || monitor.saveErrorResponse)
+                                "
+                                class="my-3"
+                            >
+                                <label for="responseMaxLength" class="form-label">
+                                    {{ $t("responseMaxLength") }}
+                                </label>
+                                <input
+                                    id="responseMaxLength"
+                                    v-model="monitor.responseMaxLength"
+                                    type="number"
+                                    class="form-control"
+                                    required
+                                    min="0"
+                                    step="1"
+                                />
+                                <div class="form-text">
+                                    {{ $t("responseMaxLengthDescription") }}
+                                </div>
+                            </div>
+
+                            <div class="my-3">
                                 <label for="acceptedStatusCodes" class="form-label">
                                     {{ $t("Accepted Status Codes") }}
                                 </label>
@@ -2199,227 +2125,530 @@
                                 </div>
                             </div>
 
-                            <!-- Parent Monitor -->
                             <div class="my-3">
-                                <label for="monitorGroupSelector" class="form-label">{{ $t("Monitor Group") }}</label>
-                                <ActionSelect
-                                    id="monitorGroupSelector"
-                                    v-model="monitor.parent"
-                                    :action-aria-label="$t('openModalTo', 'setup a new monitor group')"
-                                    :options="parentMonitorOptionsList"
-                                    :disabled="sortedGroupMonitorList.length === 0 && draftGroupName == null"
-                                    :icon="'plus'"
-                                    :action="() => $refs.createGroupDialog.show()"
-                                />
+                                <label for="ipFamily" class="form-label">{{ $t("Ip Family") }}</label>
+                                <select id="ipFamily" v-model="monitor.ipFamily" class="form-select">
+                                    <option :value="null">{{ $t("auto-select") }}</option>
+                                    <option value="ipv4">IPv4</option>
+                                    <option value="ipv6">IPv6</option>
+                                </select>
+                                <i18n-t
+                                    v-if="monitor.ipFamily == null"
+                                    keypath="ipFamilyDescriptionAutoSelect"
+                                    tag="div"
+                                    class="form-text"
+                                >
+                                    <template #happyEyeballs>
+                                        <a href="https://en.wikipedia.org/wiki/Happy_Eyeballs" target="_blank">
+                                            {{ $t("Happy Eyeballs algorithm") }}
+                                        </a>
+                                    </template>
+                                </i18n-t>
                             </div>
+                        </template>
 
-                            <!-- Description -->
-                            <div class="my-3">
-                                <label for="description" class="form-label">{{ $t("Description") }}</label>
-                                <input
-                                    id="description"
-                                    v-model="monitor.description"
-                                    type="text"
-                                    class="form-control"
-                                />
-                                <div class="form-text">{{ $t("descriptionHelpText") }}</div>
-                            </div>
+                        <!-- Globalping Accepted Status Codes -->
+                        <div v-if="monitor.type === 'globalping' && monitor.subtype === 'http'" class="my-3">
+                            <label for="acceptedStatusCodes" class="form-label">
+                                {{ $t("Accepted Status Codes") }}
+                            </label>
 
-                            <div class="my-3">
-                                <tags-manager ref="tagsManager" :pre-selected-tags="monitor.tags"></tags-manager>
+                            <VueMultiselect
+                                id="acceptedStatusCodes"
+                                v-model="monitor.accepted_statuscodes"
+                                :options="acceptedStatusCodeOptions"
+                                :multiple="true"
+                                :close-on-select="false"
+                                :clear-on-select="false"
+                                :preserve-search="true"
+                                :placeholder="$t('Pick Accepted Status Codes...')"
+                                :preselect-first="false"
+                                :max-height="600"
+                                :taggable="true"
+                                @tag="addAcceptedStatusCode"
+                            ></VueMultiselect>
+
+                            <div class="form-text">
+                                {{ $t("acceptedStatusCodesDescription") }}
                             </div>
                         </div>
 
-                        <div class="col-md-6">
-                            <div v-if="$root.isMobile" class="mt-3" />
+                        <!-- Parent Monitor -->
+                        <div class="my-3">
+                            <label for="monitorGroupSelector" class="form-label">{{ $t("Monitor Group") }}</label>
+                            <ActionSelect
+                                id="monitorGroupSelector"
+                                v-model="monitor.parent"
+                                :action-aria-label="$t('openModalTo', 'setup a new monitor group')"
+                                :options="parentMonitorOptionsList"
+                                :disabled="sortedGroupMonitorList.length === 0 && draftGroupName == null"
+                                :icon="'plus'"
+                                :action="() => $refs.createGroupDialog.show()"
+                            />
+                        </div>
 
-                            <!-- Notifications -->
-                            <h2 class="mb-2">{{ $t("Notifications") }}</h2>
-                            <p v-if="$root.notificationList.length === 0">
+                        <!-- Description -->
+                        <div class="my-3">
+                            <label for="description" class="form-label">{{ $t("Description") }}</label>
+                            <input id="description" v-model="monitor.description" type="text" class="form-control" />
+                            <div class="form-text">{{ $t("descriptionHelpText") }}</div>
+                        </div>
+
+                        <div class="my-3">
+                            <tags-manager ref="tagsManager" :pre-selected-tags="monitor.tags"></tags-manager>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div v-if="$root.isMobile" class="mt-3" />
+
+                        <!-- Notifications -->
+                        <h2 class="mb-2">{{ $t("Notifications") }}</h2>
+                        <p v-if="$root.notificationList.length === 0">
+                            {{ $t("Not available, please setup.") }}
+                        </p>
+
+                        <div
+                            v-for="notification in $root.notificationList"
+                            :key="notification.id"
+                            class="form-check form-switch my-3"
+                        >
+                            <input
+                                :id="'notification' + notification.id"
+                                v-model="monitor.notificationIDList[notification.id]"
+                                class="form-check-input"
+                                type="checkbox"
+                            />
+
+                            <label class="form-check-label" :for="'notification' + notification.id">
+                                {{ notification.name }}
+                                <a href="#" @click="$refs.notificationDialog.show(notification.id)">
+                                    {{ $t("Edit") }}
+                                </a>
+                            </label>
+
+                            <span v-if="notification.isDefault == true" class="badge bg-primary ms-2">
+                                {{ $t("Default") }}
+                            </span>
+                        </div>
+
+                        <button class="btn btn-primary me-2" type="button" @click="$refs.notificationDialog.show()">
+                            {{ $t("Setup Notification") }}
+                        </button>
+
+                        <!-- WebSocket Authentication -->
+                        <template v-if="monitor.type === 'websocket-upgrade'">
+                            <h2 class="mt-5 mb-2">{{ $t("Authentication") }}</h2>
+
+                            <!-- Auth Method -->
+                            <div class="my-3">
+                                <label for="ws-auth-method" class="form-label">{{ $t("Method") }}</label>
+                                <select id="ws-auth-method" v-model="monitor.authMethod" class="form-select">
+                                    <option :value="null">
+                                        {{ $t("None") }}
+                                    </option>
+                                    <option value="basic">
+                                        {{ $t("HTTP Basic Auth") }}
+                                    </option>
+                                    <option value="bearer">
+                                        {{ $t("Bearer Token") }}
+                                    </option>
+                                    <option value="oauth2-cc">
+                                        {{ $t("OAuth2: Client Credentials") }}
+                                    </option>
+                                    <option value="mtls">mTLS</option>
+                                </select>
+                            </div>
+
+                            <template v-if="monitor.authMethod === 'basic'">
+                                <div class="my-3">
+                                    <label for="ws-basicauth-user" class="form-label">{{ $t("Username") }}</label>
+                                    <input
+                                        id="ws-basicauth-user"
+                                        v-model="monitor.basic_auth_user"
+                                        type="text"
+                                        class="form-control"
+                                        :placeholder="$t('Username')"
+                                    />
+                                </div>
+                                <div class="my-3">
+                                    <label for="ws-basicauth-pass" class="form-label">{{ $t("Password") }}</label>
+                                    <HiddenInput
+                                        id="ws-basicauth-pass"
+                                        v-model="monitor.basic_auth_pass"
+                                        autocomplete="new-password"
+                                        :placeholder="$t('Password')"
+                                    />
+                                </div>
+                            </template>
+
+                            <template v-else-if="monitor.authMethod === 'bearer'">
+                                <div class="my-3">
+                                    <label for="ws-bearer-token" class="form-label">{{ $t("Token") }}</label>
+                                    <HiddenInput
+                                        id="ws-bearer-token"
+                                        v-model="monitor.bearer_token"
+                                        autocomplete="new-password"
+                                        :placeholder="$t('Token')"
+                                    />
+                                </div>
+                            </template>
+
+                            <template v-else-if="monitor.authMethod === 'oauth2-cc'">
+                                <div class="my-3">
+                                    <label for="ws-oauth-auth-method" class="form-label">
+                                        {{ $t("Authentication Method") }}
+                                    </label>
+                                    <select
+                                        id="ws-oauth-auth-method"
+                                        v-model="monitor.oauth_auth_method"
+                                        class="form-select"
+                                    >
+                                        <option value="client_secret_basic">
+                                            {{ $t("Authorization Header") }}
+                                        </option>
+                                        <option value="client_secret_post">
+                                            {{ $t("Form Data Body") }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="my-3">
+                                    <label for="ws-oauth-token-url" class="form-label">
+                                        {{ $t("OAuth Token URL") }}
+                                    </label>
+                                    <input
+                                        id="ws-oauth-token-url"
+                                        v-model="monitor.oauth_token_url"
+                                        type="text"
+                                        class="form-control"
+                                        :placeholder="$t('OAuth Token URL')"
+                                        required
+                                    />
+                                </div>
+                                <div class="my-3">
+                                    <label for="ws-oauth-client-id" class="form-label">
+                                        {{ $t("Client ID") }}
+                                    </label>
+                                    <input
+                                        id="ws-oauth-client-id"
+                                        v-model="monitor.oauth_client_id"
+                                        type="text"
+                                        class="form-control"
+                                        :placeholder="$t('Client ID')"
+                                        required
+                                    />
+                                </div>
+                                <template
+                                    v-if="
+                                        monitor.oauth_auth_method === 'client_secret_post' ||
+                                        monitor.oauth_auth_method === 'client_secret_basic'
+                                    "
+                                >
+                                    <div class="my-3">
+                                        <label for="ws-oauth-client-secret" class="form-label">
+                                            {{ $t("Client Secret") }}
+                                        </label>
+                                        <HiddenInput
+                                            id="ws-oauth-client-secret"
+                                            v-model="monitor.oauth_client_secret"
+                                            :placeholder="$t('Client Secret')"
+                                            :required="true"
+                                        />
+                                    </div>
+                                    <div class="my-3">
+                                        <label for="ws-oauth-scopes" class="form-label">
+                                            {{ $t("OAuth Scope") }}
+                                        </label>
+                                        <input
+                                            id="ws-oauth-scopes"
+                                            v-model="monitor.oauth_scopes"
+                                            type="text"
+                                            class="form-control"
+                                            :placeholder="$t('Optional: Space separated list of scopes')"
+                                        />
+                                    </div>
+                                    <div class="my-3">
+                                        <label for="ws-oauth-audience" class="form-label">
+                                            {{ $t("OAuth Audience") }}
+                                        </label>
+                                        <input
+                                            id="ws-oauth-audience"
+                                            v-model="monitor.oauth_audience"
+                                            type="text"
+                                            class="form-control"
+                                            :placeholder="$t('Optional: The audience to request the JWT for')"
+                                        />
+                                    </div>
+                                </template>
+                            </template>
+
+                            <template v-else-if="monitor.authMethod === 'mtls'">
+                                <div class="my-3">
+                                    <label for="ws-tls-cert" class="form-label">
+                                        {{ $t("mtls-auth-server-cert-label") }}
+                                    </label>
+                                    <textarea
+                                        id="ws-tls-cert"
+                                        v-model="monitor.tlsCert"
+                                        class="form-control"
+                                        :placeholder="$t('mtls-auth-server-cert-placeholder')"
+                                        required
+                                    ></textarea>
+                                </div>
+                                <div class="my-3">
+                                    <label for="ws-tls-key" class="form-label">
+                                        {{ $t("mtls-auth-server-key-label") }}
+                                    </label>
+                                    <textarea
+                                        id="ws-tls-key"
+                                        v-model="monitor.tlsKey"
+                                        class="form-control"
+                                        :placeholder="$t('mtls-auth-server-key-placeholder')"
+                                        required
+                                    ></textarea>
+                                </div>
+                                <div class="my-3">
+                                    <label for="ws-tls-ca" class="form-label">
+                                        {{ $t("mtls-auth-server-ca-label") }}
+                                    </label>
+                                    <textarea
+                                        id="ws-tls-ca"
+                                        v-model="monitor.tlsCa"
+                                        class="form-control"
+                                        :placeholder="$t('mtls-auth-server-ca-placeholder')"
+                                    ></textarea>
+                                </div>
+                            </template>
+                        </template>
+
+                        <!-- Proxies -->
+                        <div
+                            v-if="
+                                monitor.type === 'http' || monitor.type === 'keyword' || monitor.type === 'json-query'
+                            "
+                        >
+                            <h2 class="mt-5 mb-2">{{ $t("Proxy") }}</h2>
+                            <p v-if="$root.proxyList.length === 0">
                                 {{ $t("Not available, please setup.") }}
                             </p>
 
-                            <div
-                                v-for="notification in $root.notificationList"
-                                :key="notification.id"
-                                class="form-check form-switch my-3"
-                            >
+                            <div v-if="$root.proxyList.length > 0" class="form-check my-3">
                                 <input
-                                    :id="'notification' + notification.id"
-                                    v-model="monitor.notificationIDList[notification.id]"
+                                    id="proxy-disable"
+                                    v-model="monitor.proxyId"
+                                    :value="null"
+                                    name="proxy"
                                     class="form-check-input"
-                                    type="checkbox"
+                                    type="radio"
+                                />
+                                <label class="form-check-label" for="proxy-disable">{{ $t("No Proxy") }}</label>
+                            </div>
+
+                            <div v-for="proxy in $root.proxyList" :key="proxy.id" class="form-check my-3">
+                                <input
+                                    :id="`proxy-${proxy.id}`"
+                                    v-model="monitor.proxyId"
+                                    :value="proxy.id"
+                                    name="proxy"
+                                    class="form-check-input"
+                                    type="radio"
                                 />
 
-                                <label class="form-check-label" :for="'notification' + notification.id">
-                                    {{ notification.name }}
-                                    <a href="#" @click="$refs.notificationDialog.show(notification.id)">
-                                        {{ $t("Edit") }}
-                                    </a>
+                                <label class="form-check-label" :for="`proxy-${proxy.id}`">
+                                    {{ proxy.host }}:{{ proxy.port }} ({{ proxy.protocol }})
+                                    <a href="#" @click="$refs.proxyDialog.show(proxy.id)">{{ $t("Edit") }}</a>
                                 </label>
 
-                                <span v-if="notification.isDefault == true" class="badge bg-primary ms-2">
-                                    {{ $t("Default") }}
+                                <span v-if="proxy.default === true" class="badge bg-primary ms-2">
+                                    {{ $t("default") }}
                                 </span>
                             </div>
 
-                            <button class="btn btn-primary me-2" type="button" @click="$refs.notificationDialog.show()">
-                                {{ $t("Setup Notification") }}
+                            <button class="btn btn-primary me-2" type="button" @click="$refs.proxyDialog.show()">
+                                {{ $t("Setup Proxy") }}
                             </button>
+                        </div>
 
-                            <!-- WebSocket Authentication -->
-                            <template v-if="monitor.type === 'websocket-upgrade'">
-                                <h2 class="mt-5 mb-2">{{ $t("Authentication") }}</h2>
-
-                                <!-- Auth Method -->
-                                <div class="my-3">
-                                    <label for="ws-auth-method" class="form-label">{{ $t("Method") }}</label>
-                                    <select id="ws-auth-method" v-model="monitor.authMethod" class="form-select">
-                                        <option :value="null">
-                                            {{ $t("None") }}
-                                        </option>
-                                        <option value="basic">
-                                            {{ $t("HTTP Basic Auth") }}
-                                        </option>
-                                        <option value="bearer">
-                                            {{ $t("Bearer Token") }}
-                                        </option>
-                                        <option value="oauth2-cc">
-                                            {{ $t("OAuth2: Client Credentials") }}
-                                        </option>
-                                        <option value="mtls">mTLS</option>
-                                    </select>
+                        <!-- Kafka SASL Options -->
+                        <!-- Kafka Producer only -->
+                        <template v-if="monitor.type === 'kafka-producer'">
+                            <h2 class="mt-5 mb-2">{{ $t("Kafka SASL Options") }}</h2>
+                            <div class="my-3">
+                                <label class="form-label" for="kafkaProducerSaslMechanism">
+                                    {{ $t("Mechanism") }}
+                                </label>
+                                <VueMultiselect
+                                    id="kafkaProducerSaslMechanism"
+                                    v-model="monitor.kafkaProducerSaslOptions.mechanism"
+                                    :options="kafkaSaslMechanismOptions"
+                                    :multiple="false"
+                                    :clear-on-select="false"
+                                    :preserve-search="false"
+                                    :placeholder="$t('Pick a SASL Mechanism...')"
+                                    :preselect-first="false"
+                                    :max-height="500"
+                                    :allow-empty="false"
+                                    :taggable="false"
+                                ></VueMultiselect>
+                            </div>
+                            <div v-if="monitor.kafkaProducerSaslOptions.mechanism !== 'None'">
+                                <div v-if="monitor.kafkaProducerSaslOptions.mechanism !== 'aws'" class="my-3">
+                                    <label for="kafkaProducerSaslUsername" class="form-label">
+                                        {{ $t("Username") }}
+                                    </label>
+                                    <input
+                                        id="kafkaProducerSaslUsername"
+                                        v-model="monitor.kafkaProducerSaslOptions.username"
+                                        type="text"
+                                        autocomplete="kafkaProducerSaslUsername"
+                                        class="form-control"
+                                    />
                                 </div>
+                                <div v-if="monitor.kafkaProducerSaslOptions.mechanism !== 'aws'" class="my-3">
+                                    <label for="kafkaProducerSaslPassword" class="form-label">
+                                        {{ $t("Password") }}
+                                    </label>
+                                    <HiddenInput
+                                        id="kafkaProducerSaslPassword"
+                                        v-model="monitor.kafkaProducerSaslOptions.password"
+                                        autocomplete="kafkaProducerSaslPassword"
+                                    />
+                                </div>
+                                <div v-if="monitor.kafkaProducerSaslOptions.mechanism === 'aws'" class="my-3">
+                                    <label for="kafkaProducerSaslAuthorizationIdentity" class="form-label">
+                                        {{ $t("Authorization Identity") }}
+                                    </label>
+                                    <input
+                                        id="kafkaProducerSaslAuthorizationIdentity"
+                                        v-model="monitor.kafkaProducerSaslOptions.authorizationIdentity"
+                                        type="text"
+                                        autocomplete="kafkaProducerSaslAuthorizationIdentity"
+                                        class="form-control"
+                                        required
+                                    />
+                                </div>
+                                <div v-if="monitor.kafkaProducerSaslOptions.mechanism === 'aws'" class="my-3">
+                                    <label for="kafkaProducerSaslAccessKeyId" class="form-label">
+                                        {{ $t("AccessKey Id") }}
+                                    </label>
+                                    <input
+                                        id="kafkaProducerSaslAccessKeyId"
+                                        v-model="monitor.kafkaProducerSaslOptions.accessKeyId"
+                                        type="text"
+                                        autocomplete="kafkaProducerSaslAccessKeyId"
+                                        class="form-control"
+                                        required
+                                    />
+                                </div>
+                                <div v-if="monitor.kafkaProducerSaslOptions.mechanism === 'aws'" class="my-3">
+                                    <label for="kafkaProducerSaslSecretAccessKey" class="form-label">
+                                        {{ $t("Secret AccessKey") }}
+                                    </label>
+                                    <HiddenInput
+                                        id="kafkaProducerSaslSecretAccessKey"
+                                        v-model="monitor.kafkaProducerSaslOptions.secretAccessKey"
+                                        autocomplete="kafkaProducerSaslSecretAccessKey"
+                                        :required="true"
+                                    />
+                                </div>
+                                <div v-if="monitor.kafkaProducerSaslOptions.mechanism === 'aws'" class="my-3">
+                                    <label for="kafkaProducerSaslSessionToken" class="form-label">
+                                        {{ $t("Session Token") }}
+                                    </label>
+                                    <HiddenInput
+                                        id="kafkaProducerSaslSessionToken"
+                                        v-model="monitor.kafkaProducerSaslOptions.sessionToken"
+                                        autocomplete="kafkaProducerSaslSessionToken"
+                                    />
+                                </div>
+                            </div>
+                        </template>
 
-                                <template v-if="monitor.authMethod === 'basic'">
-                                    <div class="my-3">
-                                        <label for="ws-basicauth-user" class="form-label">{{ $t("Username") }}</label>
-                                        <input
-                                            id="ws-basicauth-user"
-                                            v-model="monitor.basic_auth_user"
-                                            type="text"
-                                            class="form-control"
-                                            :placeholder="$t('Username')"
-                                        />
-                                    </div>
-                                    <div class="my-3">
-                                        <label for="ws-basicauth-pass" class="form-label">{{ $t("Password") }}</label>
-                                        <HiddenInput
-                                            id="ws-basicauth-pass"
-                                            v-model="monitor.basic_auth_pass"
-                                            autocomplete="new-password"
-                                            :placeholder="$t('Password')"
-                                        />
-                                    </div>
-                                </template>
+                        <!-- HTTP Options -->
+                        <template
+                            v-if="
+                                monitor.type === 'http' || monitor.type === 'keyword' || monitor.type === 'json-query'
+                            "
+                        >
+                            <h2 class="mt-5 mb-2">{{ $t("HTTP Options") }}</h2>
 
-                                <template v-else-if="monitor.authMethod === 'bearer'">
-                                    <div class="my-3">
-                                        <label for="ws-bearer-token" class="form-label">{{ $t("Token") }}</label>
-                                        <HiddenInput
-                                            id="ws-bearer-token"
-                                            v-model="monitor.bearer_token"
-                                            autocomplete="new-password"
-                                            :placeholder="$t('Token')"
-                                        />
-                                    </div>
-                                </template>
+                            <!-- Method -->
+                            <div class="my-3">
+                                <label for="method" class="form-label">{{ $t("Method") }}</label>
+                                <select id="method" v-model="monitor.method" class="form-select">
+                                    <option value="GET">GET</option>
+                                    <option value="POST">POST</option>
+                                    <option value="PUT">PUT</option>
+                                    <option value="PATCH">PATCH</option>
+                                    <option value="DELETE">DELETE</option>
+                                    <option value="HEAD">HEAD</option>
+                                    <option value="OPTIONS">OPTIONS</option>
+                                </select>
+                            </div>
 
-                                <template v-else-if="monitor.authMethod === 'oauth2-cc'">
-                                    <div class="my-3">
-                                        <label for="ws-oauth-auth-method" class="form-label">
-                                            {{ $t("Authentication Method") }}
-                                        </label>
-                                        <select
-                                            id="ws-oauth-auth-method"
-                                            v-model="monitor.oauth_auth_method"
-                                            class="form-select"
-                                        >
-                                            <option value="client_secret_basic">
-                                                {{ $t("Authorization Header") }}
-                                            </option>
-                                            <option value="client_secret_post">
-                                                {{ $t("Form Data Body") }}
-                                            </option>
-                                        </select>
-                                    </div>
-                                    <div class="my-3">
-                                        <label for="ws-oauth-token-url" class="form-label">
-                                            {{ $t("OAuth Token URL") }}
-                                        </label>
-                                        <input
-                                            id="ws-oauth-token-url"
-                                            v-model="monitor.oauth_token_url"
-                                            type="text"
-                                            class="form-control"
-                                            :placeholder="$t('OAuth Token URL')"
-                                            required
-                                        />
-                                    </div>
-                                    <div class="my-3">
-                                        <label for="ws-oauth-client-id" class="form-label">
-                                            {{ $t("Client ID") }}
-                                        </label>
-                                        <input
-                                            id="ws-oauth-client-id"
-                                            v-model="monitor.oauth_client_id"
-                                            type="text"
-                                            class="form-control"
-                                            :placeholder="$t('Client ID')"
-                                            required
-                                        />
-                                    </div>
-                                    <template
-                                        v-if="
-                                            monitor.oauth_auth_method === 'client_secret_post' ||
-                                            monitor.oauth_auth_method === 'client_secret_basic'
-                                        "
-                                    >
-                                        <div class="my-3">
-                                            <label for="ws-oauth-client-secret" class="form-label">
-                                                {{ $t("Client Secret") }}
-                                            </label>
-                                            <HiddenInput
-                                                id="ws-oauth-client-secret"
-                                                v-model="monitor.oauth_client_secret"
-                                                :placeholder="$t('Client Secret')"
-                                                :required="true"
-                                            />
-                                        </div>
-                                        <div class="my-3">
-                                            <label for="ws-oauth-scopes" class="form-label">
-                                                {{ $t("OAuth Scope") }}
-                                            </label>
-                                            <input
-                                                id="ws-oauth-scopes"
-                                                v-model="monitor.oauth_scopes"
-                                                type="text"
-                                                class="form-control"
-                                                :placeholder="$t('Optional: Space separated list of scopes')"
-                                            />
-                                        </div>
-                                        <div class="my-3">
-                                            <label for="ws-oauth-audience" class="form-label">
-                                                {{ $t("OAuth Audience") }}
-                                            </label>
-                                            <input
-                                                id="ws-oauth-audience"
-                                                v-model="monitor.oauth_audience"
-                                                type="text"
-                                                class="form-control"
-                                                :placeholder="$t('Optional: The audience to request the JWT for')"
-                                            />
-                                        </div>
-                                    </template>
-                                </template>
+                            <!-- Encoding -->
+                            <div class="my-3">
+                                <label for="httpBodyEncoding" class="form-label">{{ $t("Body Encoding") }}</label>
+                                <select id="httpBodyEncoding" v-model="monitor.httpBodyEncoding" class="form-select">
+                                    <option value="json">JSON</option>
+                                    <option value="form">x-www-form-urlencoded</option>
+                                    <option value="xml">XML</option>
+                                </select>
+                            </div>
 
-                                <template v-else-if="monitor.authMethod === 'mtls'">
+                            <!-- Body -->
+                            <div class="my-3">
+                                <label for="body" class="form-label">{{ $t("Body") }}</label>
+                                <textarea
+                                    id="body"
+                                    v-model="monitor.body"
+                                    class="form-control"
+                                    :placeholder="bodyPlaceholder"
+                                ></textarea>
+                            </div>
+
+                            <!-- Headers -->
+                            <div class="my-3">
+                                <label for="headers" class="form-label">{{ $t("Headers") }}</label>
+                                <textarea
+                                    id="headers"
+                                    v-model="monitor.headers"
+                                    class="form-control"
+                                    :placeholder="headersPlaceholder"
+                                ></textarea>
+                            </div>
+
+                            <!-- HTTP Auth -->
+                            <h4 class="mt-5 mb-2">{{ $t("Authentication") }}</h4>
+
+                            <!-- Method -->
+                            <div class="my-3">
+                                <label for="method" class="form-label">{{ $t("Method") }}</label>
+                                <select id="method" v-model="monitor.authMethod" class="form-select">
+                                    <option :value="null">
+                                        {{ $t("None") }}
+                                    </option>
+                                    <option value="basic">
+                                        {{ $t("HTTP Basic Auth") }}
+                                    </option>
+                                    <option value="bearer">
+                                        {{ $t("Bearer Token") }}
+                                    </option>
+                                    <option value="oauth2-cc">
+                                        {{ $t("OAuth2: Client Credentials") }}
+                                    </option>
+                                    <option value="ntlm">NTLM</option>
+                                    <option value="mtls">mTLS</option>
+                                </select>
+                            </div>
+                            <template v-if="monitor.authMethod && monitor.authMethod !== null">
+                                <template v-if="monitor.authMethod === 'mtls'">
                                     <div class="my-3">
-                                        <label for="ws-tls-cert" class="form-label">
+                                        <label for="tls-cert" class="form-label">
                                             {{ $t("mtls-auth-server-cert-label") }}
                                         </label>
                                         <textarea
-                                            id="ws-tls-cert"
+                                            id="tls-cert"
                                             v-model="monitor.tlsCert"
                                             class="form-control"
                                             :placeholder="$t('mtls-auth-server-cert-placeholder')"
@@ -2427,11 +2656,11 @@
                                         ></textarea>
                                     </div>
                                     <div class="my-3">
-                                        <label for="ws-tls-key" class="form-label">
+                                        <label for="tls-key" class="form-label">
                                             {{ $t("mtls-auth-server-key-label") }}
                                         </label>
                                         <textarea
-                                            id="ws-tls-key"
+                                            id="tls-key"
                                             v-model="monitor.tlsKey"
                                             class="form-control"
                                             :placeholder="$t('mtls-auth-server-key-placeholder')"
@@ -2439,511 +2668,22 @@
                                         ></textarea>
                                     </div>
                                     <div class="my-3">
-                                        <label for="ws-tls-ca" class="form-label">
+                                        <label for="tls-ca" class="form-label">
                                             {{ $t("mtls-auth-server-ca-label") }}
                                         </label>
                                         <textarea
-                                            id="ws-tls-ca"
+                                            id="tls-ca"
                                             v-model="monitor.tlsCa"
                                             class="form-control"
                                             :placeholder="$t('mtls-auth-server-ca-placeholder')"
                                         ></textarea>
                                     </div>
                                 </template>
-                            </template>
-
-                            <!-- Proxies -->
-                            <div
-                                v-if="
-                                    monitor.type === 'http' ||
-                                    monitor.type === 'keyword' ||
-                                    monitor.type === 'json-query'
-                                "
-                            >
-                                <h2 class="mt-5 mb-2">{{ $t("Proxy") }}</h2>
-                                <p v-if="$root.proxyList.length === 0">
-                                    {{ $t("Not available, please setup.") }}
-                                </p>
-
-                                <div v-if="$root.proxyList.length > 0" class="form-check my-3">
-                                    <input
-                                        id="proxy-disable"
-                                        v-model="monitor.proxyId"
-                                        :value="null"
-                                        name="proxy"
-                                        class="form-check-input"
-                                        type="radio"
-                                    />
-                                    <label class="form-check-label" for="proxy-disable">{{ $t("No Proxy") }}</label>
-                                </div>
-
-                                <div v-for="proxy in $root.proxyList" :key="proxy.id" class="form-check my-3">
-                                    <input
-                                        :id="`proxy-${proxy.id}`"
-                                        v-model="monitor.proxyId"
-                                        :value="proxy.id"
-                                        name="proxy"
-                                        class="form-check-input"
-                                        type="radio"
-                                    />
-
-                                    <label class="form-check-label" :for="`proxy-${proxy.id}`">
-                                        {{ proxy.host }}:{{ proxy.port }} ({{ proxy.protocol }})
-                                        <a href="#" @click="$refs.proxyDialog.show(proxy.id)">{{ $t("Edit") }}</a>
-                                    </label>
-
-                                    <span v-if="proxy.default === true" class="badge bg-primary ms-2">
-                                        {{ $t("default") }}
-                                    </span>
-                                </div>
-
-                                <button class="btn btn-primary me-2" type="button" @click="$refs.proxyDialog.show()">
-                                    {{ $t("Setup Proxy") }}
-                                </button>
-                            </div>
-
-                            <!-- Kafka SASL Options -->
-                            <!-- Kafka Producer only -->
-                            <template v-if="monitor.type === 'kafka-producer'">
-                                <h2 class="mt-5 mb-2">{{ $t("Kafka SASL Options") }}</h2>
-                                <div class="my-3">
-                                    <label class="form-label" for="kafkaProducerSaslMechanism">
-                                        {{ $t("Mechanism") }}
-                                    </label>
-                                    <VueMultiselect
-                                        id="kafkaProducerSaslMechanism"
-                                        v-model="monitor.kafkaProducerSaslOptions.mechanism"
-                                        :options="kafkaSaslMechanismOptions"
-                                        :multiple="false"
-                                        :clear-on-select="false"
-                                        :preserve-search="false"
-                                        :placeholder="$t('Pick a SASL Mechanism...')"
-                                        :preselect-first="false"
-                                        :max-height="500"
-                                        :allow-empty="false"
-                                        :taggable="false"
-                                    ></VueMultiselect>
-                                </div>
-                                <div v-if="monitor.kafkaProducerSaslOptions.mechanism !== 'None'">
-                                    <div v-if="monitor.kafkaProducerSaslOptions.mechanism !== 'aws'" class="my-3">
-                                        <label for="kafkaProducerSaslUsername" class="form-label">
-                                            {{ $t("Username") }}
-                                        </label>
-                                        <input
-                                            id="kafkaProducerSaslUsername"
-                                            v-model="monitor.kafkaProducerSaslOptions.username"
-                                            type="text"
-                                            autocomplete="kafkaProducerSaslUsername"
-                                            class="form-control"
-                                        />
-                                    </div>
-                                    <div v-if="monitor.kafkaProducerSaslOptions.mechanism !== 'aws'" class="my-3">
-                                        <label for="kafkaProducerSaslPassword" class="form-label">
-                                            {{ $t("Password") }}
-                                        </label>
-                                        <HiddenInput
-                                            id="kafkaProducerSaslPassword"
-                                            v-model="monitor.kafkaProducerSaslOptions.password"
-                                            autocomplete="kafkaProducerSaslPassword"
-                                        />
-                                    </div>
-                                    <div v-if="monitor.kafkaProducerSaslOptions.mechanism === 'aws'" class="my-3">
-                                        <label for="kafkaProducerSaslAuthorizationIdentity" class="form-label">
-                                            {{ $t("Authorization Identity") }}
-                                        </label>
-                                        <input
-                                            id="kafkaProducerSaslAuthorizationIdentity"
-                                            v-model="monitor.kafkaProducerSaslOptions.authorizationIdentity"
-                                            type="text"
-                                            autocomplete="kafkaProducerSaslAuthorizationIdentity"
-                                            class="form-control"
-                                            required
-                                        />
-                                    </div>
-                                    <div v-if="monitor.kafkaProducerSaslOptions.mechanism === 'aws'" class="my-3">
-                                        <label for="kafkaProducerSaslAccessKeyId" class="form-label">
-                                            {{ $t("AccessKey Id") }}
-                                        </label>
-                                        <input
-                                            id="kafkaProducerSaslAccessKeyId"
-                                            v-model="monitor.kafkaProducerSaslOptions.accessKeyId"
-                                            type="text"
-                                            autocomplete="kafkaProducerSaslAccessKeyId"
-                                            class="form-control"
-                                            required
-                                        />
-                                    </div>
-                                    <div v-if="monitor.kafkaProducerSaslOptions.mechanism === 'aws'" class="my-3">
-                                        <label for="kafkaProducerSaslSecretAccessKey" class="form-label">
-                                            {{ $t("Secret AccessKey") }}
-                                        </label>
-                                        <HiddenInput
-                                            id="kafkaProducerSaslSecretAccessKey"
-                                            v-model="monitor.kafkaProducerSaslOptions.secretAccessKey"
-                                            autocomplete="kafkaProducerSaslSecretAccessKey"
-                                            :required="true"
-                                        />
-                                    </div>
-                                    <div v-if="monitor.kafkaProducerSaslOptions.mechanism === 'aws'" class="my-3">
-                                        <label for="kafkaProducerSaslSessionToken" class="form-label">
-                                            {{ $t("Session Token") }}
-                                        </label>
-                                        <HiddenInput
-                                            id="kafkaProducerSaslSessionToken"
-                                            v-model="monitor.kafkaProducerSaslOptions.sessionToken"
-                                            autocomplete="kafkaProducerSaslSessionToken"
-                                        />
-                                    </div>
-                                </div>
-                            </template>
-
-                            <!-- HTTP Options -->
-                            <template
-                                v-if="
-                                    monitor.type === 'http' ||
-                                    monitor.type === 'keyword' ||
-                                    monitor.type === 'json-query'
-                                "
-                            >
-                                <h2 class="mt-5 mb-2">{{ $t("HTTP Options") }}</h2>
-
-                                <!-- Method -->
-                                <div class="my-3">
-                                    <label for="method" class="form-label">{{ $t("Method") }}</label>
-                                    <select id="method" v-model="monitor.method" class="form-select">
-                                        <option value="GET">GET</option>
-                                        <option value="POST">POST</option>
-                                        <option value="PUT">PUT</option>
-                                        <option value="PATCH">PATCH</option>
-                                        <option value="DELETE">DELETE</option>
-                                        <option value="HEAD">HEAD</option>
-                                        <option value="OPTIONS">OPTIONS</option>
-                                    </select>
-                                </div>
-
-                                <!-- Encoding -->
-                                <div class="my-3">
-                                    <label for="httpBodyEncoding" class="form-label">{{ $t("Body Encoding") }}</label>
-                                    <select
-                                        id="httpBodyEncoding"
-                                        v-model="monitor.httpBodyEncoding"
-                                        class="form-select"
-                                    >
-                                        <option value="json">JSON</option>
-                                        <option value="form">x-www-form-urlencoded</option>
-                                        <option value="xml">XML</option>
-                                    </select>
-                                </div>
-
-                                <!-- Body -->
-                                <div class="my-3">
-                                    <label for="body" class="form-label">{{ $t("Body") }}</label>
-                                    <textarea
-                                        id="body"
-                                        v-model="monitor.body"
-                                        class="form-control"
-                                        :placeholder="bodyPlaceholder"
-                                    ></textarea>
-                                </div>
-
-                                <!-- Headers -->
-                                <div class="my-3">
-                                    <label for="headers" class="form-label">{{ $t("Headers") }}</label>
-                                    <textarea
-                                        id="headers"
-                                        v-model="monitor.headers"
-                                        class="form-control"
-                                        :placeholder="headersPlaceholder"
-                                    ></textarea>
-                                </div>
-
-                                <!-- HTTP Auth -->
-                                <h4 class="mt-5 mb-2">{{ $t("Authentication") }}</h4>
-
-                                <!-- Method -->
-                                <div class="my-3">
-                                    <label for="method" class="form-label">{{ $t("Method") }}</label>
-                                    <select id="method" v-model="monitor.authMethod" class="form-select">
-                                        <option :value="null">
-                                            {{ $t("None") }}
-                                        </option>
-                                        <option value="basic">
-                                            {{ $t("HTTP Basic Auth") }}
-                                        </option>
-                                        <option value="bearer">
-                                            {{ $t("Bearer Token") }}
-                                        </option>
-                                        <option value="oauth2-cc">
-                                            {{ $t("OAuth2: Client Credentials") }}
-                                        </option>
-                                        <option value="ntlm">NTLM</option>
-                                        <option value="mtls">mTLS</option>
-                                    </select>
-                                </div>
-                                <template v-if="monitor.authMethod && monitor.authMethod !== null">
-                                    <template v-if="monitor.authMethod === 'mtls'">
-                                        <div class="my-3">
-                                            <label for="tls-cert" class="form-label">
-                                                {{ $t("mtls-auth-server-cert-label") }}
-                                            </label>
-                                            <textarea
-                                                id="tls-cert"
-                                                v-model="monitor.tlsCert"
-                                                class="form-control"
-                                                :placeholder="$t('mtls-auth-server-cert-placeholder')"
-                                                required
-                                            ></textarea>
-                                        </div>
-                                        <div class="my-3">
-                                            <label for="tls-key" class="form-label">
-                                                {{ $t("mtls-auth-server-key-label") }}
-                                            </label>
-                                            <textarea
-                                                id="tls-key"
-                                                v-model="monitor.tlsKey"
-                                                class="form-control"
-                                                :placeholder="$t('mtls-auth-server-key-placeholder')"
-                                                required
-                                            ></textarea>
-                                        </div>
-                                        <div class="my-3">
-                                            <label for="tls-ca" class="form-label">
-                                                {{ $t("mtls-auth-server-ca-label") }}
-                                            </label>
-                                            <textarea
-                                                id="tls-ca"
-                                                v-model="monitor.tlsCa"
-                                                class="form-control"
-                                                :placeholder="$t('mtls-auth-server-ca-placeholder')"
-                                            ></textarea>
-                                        </div>
-                                    </template>
-                                    <template v-else-if="monitor.authMethod === 'bearer'">
-                                        <div class="my-3">
-                                            <label for="bearer-token" class="form-label">{{ $t("Token") }}</label>
-                                            <HiddenInput
-                                                id="bearer-token"
-                                                v-model="monitor.bearer_token"
-                                                autocomplete="new-password"
-                                                :placeholder="$t('Token')"
-                                            />
-                                        </div>
-                                    </template>
-                                    <template v-else-if="monitor.authMethod === 'oauth2-cc'">
-                                        <div class="my-3">
-                                            <label for="oauth_auth_method" class="form-label">
-                                                {{ $t("Authentication Method") }}
-                                            </label>
-                                            <select
-                                                id="oauth_auth_method"
-                                                v-model="monitor.oauth_auth_method"
-                                                class="form-select"
-                                            >
-                                                <option value="client_secret_basic">
-                                                    {{ $t("Authorization Header") }}
-                                                </option>
-                                                <option value="client_secret_post">
-                                                    {{ $t("Form Data Body") }}
-                                                </option>
-                                            </select>
-                                        </div>
-                                        <div class="my-3">
-                                            <label for="oauth_token_url" class="form-label">
-                                                {{ $t("OAuth Token URL") }}
-                                            </label>
-                                            <input
-                                                id="oauth_token_url"
-                                                v-model="monitor.oauth_token_url"
-                                                type="text"
-                                                class="form-control"
-                                                :placeholder="$t('OAuth Token URL')"
-                                                required
-                                            />
-                                        </div>
-                                        <div class="my-3">
-                                            <label for="oauth_client_id" class="form-label">
-                                                {{ $t("Client ID") }}
-                                            </label>
-                                            <input
-                                                id="oauth_client_id"
-                                                v-model="monitor.oauth_client_id"
-                                                type="text"
-                                                class="form-control"
-                                                :placeholder="$t('Client ID')"
-                                                required
-                                            />
-                                        </div>
-                                        <template
-                                            v-if="
-                                                monitor.oauth_auth_method === 'client_secret_post' ||
-                                                monitor.oauth_auth_method === 'client_secret_basic'
-                                            "
-                                        >
-                                            <div class="my-3">
-                                                <label for="oauth_client_secret" class="form-label">
-                                                    {{ $t("Client Secret") }}
-                                                </label>
-                                                <HiddenInput
-                                                    id="oauth_client_secret"
-                                                    v-model="monitor.oauth_client_secret"
-                                                    :placeholder="$t('Client Secret')"
-                                                    :required="true"
-                                                />
-                                            </div>
-                                            <div class="my-3">
-                                                <label for="oauth_scopes" class="form-label">
-                                                    {{ $t("OAuth Scope") }}
-                                                </label>
-                                                <input
-                                                    id="oauth_scopes"
-                                                    v-model="monitor.oauth_scopes"
-                                                    type="text"
-                                                    class="form-control"
-                                                    :placeholder="$t('Optional: Space separated list of scopes')"
-                                                />
-                                            </div>
-                                            <div class="my-3">
-                                                <label for="oauth_audience" class="form-label">
-                                                    {{ $t("OAuth Audience") }}
-                                                </label>
-                                                <input
-                                                    id="oauth_audience"
-                                                    v-model="monitor.oauth_audience"
-                                                    type="text"
-                                                    class="form-control"
-                                                    :placeholder="$t('Optional: The audience to request the JWT for')"
-                                                />
-                                            </div>
-                                        </template>
-                                    </template>
-                                    <template v-else>
-                                        <div class="my-3">
-                                            <label for="basicauth-user" class="form-label">{{ $t("Username") }}</label>
-                                            <input
-                                                id="basicauth-user"
-                                                v-model="monitor.basic_auth_user"
-                                                type="text"
-                                                class="form-control"
-                                                :placeholder="$t('Username')"
-                                            />
-                                        </div>
-
-                                        <div class="my-3">
-                                            <label for="basicauth-pass" class="form-label">{{ $t("Password") }}</label>
-                                            <HiddenInput
-                                                id="basicauth-pass"
-                                                v-model="monitor.basic_auth_pass"
-                                                autocomplete="new-password"
-                                                :placeholder="$t('Password')"
-                                            />
-                                        </div>
-                                        <template v-if="monitor.authMethod === 'ntlm'">
-                                            <div class="my-3">
-                                                <label for="ntlm-domain" class="form-label">{{ $t("Domain") }}</label>
-                                                <input
-                                                    id="ntlm-domain"
-                                                    v-model="monitor.authDomain"
-                                                    type="text"
-                                                    class="form-control"
-                                                    :placeholder="$t('Domain')"
-                                                />
-                                            </div>
-
-                                            <div class="my-3">
-                                                <label for="ntlm-workstation" class="form-label">
-                                                    {{ $t("Workstation") }}
-                                                </label>
-                                                <input
-                                                    id="ntlm-workstation"
-                                                    v-model="monitor.authWorkstation"
-                                                    type="text"
-                                                    class="form-control"
-                                                    :placeholder="$t('Workstation')"
-                                                />
-                                            </div>
-                                        </template>
-                                    </template>
-                                </template>
-                            </template>
-
-                            <!-- Globalping HTTP Options -->
-                            <template v-if="monitor.type === 'globalping' && monitor.subtype === 'http'">
-                                <h2 class="mt-5 mb-2">{{ $t("HTTP Options") }}</h2>
-
-                                <!-- Method -->
-                                <div class="my-3">
-                                    <label for="method" class="form-label">{{ $t("Method") }}</label>
-                                    <select id="method" v-model="monitor.method" class="form-select">
-                                        <option value="HEAD">HEAD</option>
-                                        <option value="GET">GET</option>
-                                        <option value="OPTIONS">OPTIONS</option>
-                                    </select>
-                                </div>
-
-                                <!-- Headers -->
-                                <div class="my-3">
-                                    <label for="headers" class="form-label">{{ $t("Headers") }}</label>
-                                    <textarea
-                                        id="headers"
-                                        v-model="monitor.headers"
-                                        class="form-control"
-                                        :placeholder="headersPlaceholder"
-                                    ></textarea>
-                                </div>
-
-                                <!-- HTTP Auth -->
-                                <h4 class="mt-5 mb-2">{{ $t("Authentication") }}</h4>
-
-                                <!-- Method -->
-                                <div class="my-3">
-                                    <label for="method" class="form-label">{{ $t("Method") }}</label>
-                                    <select id="method" v-model="monitor.authMethod" class="form-select">
-                                        <option :value="null">
-                                            {{ $t("None") }}
-                                        </option>
-                                        <option value="basic">
-                                            {{ $t("HTTP Basic Auth") }}
-                                        </option>
-                                        <option value="bearer">
-                                            {{ $t("Bearer Token") }}
-                                        </option>
-                                        <option value="oauth2-cc">
-                                            {{ $t("OAuth2: Client Credentials") }}
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <template v-if="monitor.authMethod === 'basic'">
-                                    <div class="my-3">
-                                        <label for="basicauth-user" class="form-label">{{ $t("Username") }}</label>
-                                        <input
-                                            id="basicauth-user"
-                                            v-model="monitor.basic_auth_user"
-                                            type="text"
-                                            class="form-control"
-                                            :placeholder="$t('Username')"
-                                        />
-                                    </div>
-
-                                    <div class="my-3">
-                                        <label for="basicauth-pass" class="form-label">{{ $t("Password") }}</label>
-                                        <input
-                                            id="basicauth-pass"
-                                            v-model="monitor.basic_auth_pass"
-                                            type="password"
-                                            autocomplete="new-password"
-                                            class="form-control"
-                                            :placeholder="$t('Password')"
-                                        />
-                                    </div>
-                                </template>
                                 <template v-else-if="monitor.authMethod === 'bearer'">
                                     <div class="my-3">
-                                        <label for="bearer-token-globalping" class="form-label">
-                                            {{ $t("Token") }}
-                                        </label>
+                                        <label for="bearer-token" class="form-label">{{ $t("Token") }}</label>
                                         <HiddenInput
-                                            id="bearer-token-globalping"
+                                            id="bearer-token"
                                             v-model="monitor.bearer_token"
                                             autocomplete="new-password"
                                             :placeholder="$t('Token')"
@@ -2982,7 +2722,9 @@
                                         />
                                     </div>
                                     <div class="my-3">
-                                        <label for="oauth_client_id" class="form-label">{{ $t("Client ID") }}</label>
+                                        <label for="oauth_client_id" class="form-label">
+                                            {{ $t("Client ID") }}
+                                        </label>
                                         <input
                                             id="oauth_client_id"
                                             v-model="monitor.oauth_client_id"
@@ -3002,17 +2744,17 @@
                                             <label for="oauth_client_secret" class="form-label">
                                                 {{ $t("Client Secret") }}
                                             </label>
-                                            <input
+                                            <HiddenInput
                                                 id="oauth_client_secret"
                                                 v-model="monitor.oauth_client_secret"
-                                                type="password"
-                                                class="form-control"
                                                 :placeholder="$t('Client Secret')"
-                                                required
+                                                :required="true"
                                             />
                                         </div>
                                         <div class="my-3">
-                                            <label for="oauth_scopes" class="form-label">{{ $t("OAuth Scope") }}</label>
+                                            <label for="oauth_scopes" class="form-label">
+                                                {{ $t("OAuth Scope") }}
+                                            </label>
                                             <input
                                                 id="oauth_scopes"
                                                 v-model="monitor.oauth_scopes"
@@ -3035,232 +2777,445 @@
                                         </div>
                                     </template>
                                 </template>
-
-                                <!-- Response -->
-                                <h2 class="mt-5 mb-2">{{ $t("Response") }}</h2>
-                                <div class="my-3">
-                                    <label for="checkfor" class="form-label">{{ $t("Check for") }}</label>
-                                    <select id="checkfor" v-model="monitor.responsecheck" class="form-select">
-                                        <option :value="null">
-                                            {{ $t("None") }}
-                                        </option>
-                                        <option value="keyword">
-                                            {{ $t("Keyword") }}
-                                        </option>
-                                        <option value="json-query">
-                                            {{ $t("Json Query Expression") }}
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <!-- Keyword -->
-                                <template v-if="monitor.responsecheck === 'keyword'">
+                                <template v-else>
                                     <div class="my-3">
-                                        <label for="keyword" class="form-label">{{ $t("Keyword") }}</label>
+                                        <label for="basicauth-user" class="form-label">{{ $t("Username") }}</label>
                                         <input
-                                            id="keyword"
-                                            v-model="monitor.keyword"
+                                            id="basicauth-user"
+                                            v-model="monitor.basic_auth_user"
                                             type="text"
                                             class="form-control"
+                                            :placeholder="$t('Username')"
                                         />
-                                        <div class="form-text">
-                                            {{ $t("keywordDescription") }}
-                                        </div>
                                     </div>
 
-                                    <!-- Invert keyword -->
-                                    <div class="my-3 form-check">
-                                        <input
-                                            id="invert-keyword"
-                                            v-model="monitor.invertKeyword"
-                                            class="form-check-input"
-                                            type="checkbox"
-                                        />
-                                        <label class="form-check-label" for="invert-keyword">
-                                            {{ $t("Invert Keyword") }}
-                                        </label>
-                                        <div class="form-text">
-                                            {{ $t("invertKeywordDescription") }}
-                                        </div>
-                                    </div>
-                                </template>
-
-                                <!-- Json Query -->
-                                <template v-if="monitor.responsecheck === 'json-query'">
                                     <div class="my-3">
-                                        <div class="my-2">
-                                            <label for="jsonPath" class="form-label mb-0">
-                                                {{ $t("Json Query Expression") }}
-                                            </label>
-                                            <i18n-t tag="div" class="form-text mb-2" keypath="jsonQueryDescription">
-                                                <a href="https://jsonata.org/">jsonata.org</a>
-                                                <a href="https://try.jsonata.org/">{{ $t("playground") }}</a>
-                                            </i18n-t>
+                                        <label for="basicauth-pass" class="form-label">{{ $t("Password") }}</label>
+                                        <HiddenInput
+                                            id="basicauth-pass"
+                                            v-model="monitor.basic_auth_pass"
+                                            autocomplete="new-password"
+                                            :placeholder="$t('Password')"
+                                        />
+                                    </div>
+                                    <template v-if="monitor.authMethod === 'ntlm'">
+                                        <div class="my-3">
+                                            <label for="ntlm-domain" class="form-label">{{ $t("Domain") }}</label>
                                             <input
-                                                id="jsonPath"
-                                                v-model="monitor.jsonPath"
+                                                id="ntlm-domain"
+                                                v-model="monitor.authDomain"
                                                 type="text"
                                                 class="form-control"
-                                                placeholder="$"
-                                                required
+                                                :placeholder="$t('Domain')"
                                             />
                                         </div>
 
-                                        <div class="d-flex align-items-start">
-                                            <div class="me-2">
-                                                <label for="json_path_operator" class="form-label">
-                                                    {{ $t("Condition") }}
-                                                </label>
-                                                <select
-                                                    id="json_path_operator"
-                                                    v-model="monitor.jsonPathOperator"
-                                                    class="form-select me-3"
-                                                    required
-                                                >
-                                                    <option value=">">&gt;</option>
-                                                    <option value=">=">&gt;=</option>
-                                                    <option value="<">&lt;</option>
-                                                    <option value="<=">&lt;=</option>
-                                                    <option value="!=">&#33;=</option>
-                                                    <option value="==">==</option>
-                                                    <option value="contains">contains</option>
-                                                </select>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <label for="expectedValue" class="form-label">
-                                                    {{ $t("Expected Value") }}
-                                                </label>
-                                                <input
-                                                    v-if="
-                                                        monitor.jsonPathOperator !== 'contains' &&
-                                                        monitor.jsonPathOperator !== '==' &&
-                                                        monitor.jsonPathOperator !== '!='
-                                                    "
-                                                    id="expectedValue"
-                                                    v-model="monitor.expectedValue"
-                                                    type="number"
-                                                    class="form-control"
-                                                    required
-                                                    step=".01"
-                                                />
-                                                <input
-                                                    v-else
-                                                    id="expectedValue"
-                                                    v-model="monitor.expectedValue"
-                                                    type="text"
-                                                    class="form-control"
-                                                    required
-                                                />
-                                            </div>
+                                        <div class="my-3">
+                                            <label for="ntlm-workstation" class="form-label">
+                                                {{ $t("Workstation") }}
+                                            </label>
+                                            <input
+                                                id="ntlm-workstation"
+                                                v-model="monitor.authWorkstation"
+                                                type="text"
+                                                class="form-control"
+                                                :placeholder="$t('Workstation')"
+                                            />
                                         </div>
+                                    </template>
+                                </template>
+                            </template>
+                        </template>
+
+                        <!-- Globalping HTTP Options -->
+                        <template v-if="monitor.type === 'globalping' && monitor.subtype === 'http'">
+                            <h2 class="mt-5 mb-2">{{ $t("HTTP Options") }}</h2>
+
+                            <!-- Method -->
+                            <div class="my-3">
+                                <label for="method" class="form-label">{{ $t("Method") }}</label>
+                                <select id="method" v-model="monitor.method" class="form-select">
+                                    <option value="HEAD">HEAD</option>
+                                    <option value="GET">GET</option>
+                                    <option value="OPTIONS">OPTIONS</option>
+                                </select>
+                            </div>
+
+                            <!-- Headers -->
+                            <div class="my-3">
+                                <label for="headers" class="form-label">{{ $t("Headers") }}</label>
+                                <textarea
+                                    id="headers"
+                                    v-model="monitor.headers"
+                                    class="form-control"
+                                    :placeholder="headersPlaceholder"
+                                ></textarea>
+                            </div>
+
+                            <!-- HTTP Auth -->
+                            <h4 class="mt-5 mb-2">{{ $t("Authentication") }}</h4>
+
+                            <!-- Method -->
+                            <div class="my-3">
+                                <label for="method" class="form-label">{{ $t("Method") }}</label>
+                                <select id="method" v-model="monitor.authMethod" class="form-select">
+                                    <option :value="null">
+                                        {{ $t("None") }}
+                                    </option>
+                                    <option value="basic">
+                                        {{ $t("HTTP Basic Auth") }}
+                                    </option>
+                                    <option value="bearer">
+                                        {{ $t("Bearer Token") }}
+                                    </option>
+                                    <option value="oauth2-cc">
+                                        {{ $t("OAuth2: Client Credentials") }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <template v-if="monitor.authMethod === 'basic'">
+                                <div class="my-3">
+                                    <label for="basicauth-user" class="form-label">{{ $t("Username") }}</label>
+                                    <input
+                                        id="basicauth-user"
+                                        v-model="monitor.basic_auth_user"
+                                        type="text"
+                                        class="form-control"
+                                        :placeholder="$t('Username')"
+                                    />
+                                </div>
+
+                                <div class="my-3">
+                                    <label for="basicauth-pass" class="form-label">{{ $t("Password") }}</label>
+                                    <input
+                                        id="basicauth-pass"
+                                        v-model="monitor.basic_auth_pass"
+                                        type="password"
+                                        autocomplete="new-password"
+                                        class="form-control"
+                                        :placeholder="$t('Password')"
+                                    />
+                                </div>
+                            </template>
+                            <template v-else-if="monitor.authMethod === 'bearer'">
+                                <div class="my-3">
+                                    <label for="bearer-token-globalping" class="form-label">
+                                        {{ $t("Token") }}
+                                    </label>
+                                    <HiddenInput
+                                        id="bearer-token-globalping"
+                                        v-model="monitor.bearer_token"
+                                        autocomplete="new-password"
+                                        :placeholder="$t('Token')"
+                                    />
+                                </div>
+                            </template>
+                            <template v-else-if="monitor.authMethod === 'oauth2-cc'">
+                                <div class="my-3">
+                                    <label for="oauth_auth_method" class="form-label">
+                                        {{ $t("Authentication Method") }}
+                                    </label>
+                                    <select
+                                        id="oauth_auth_method"
+                                        v-model="monitor.oauth_auth_method"
+                                        class="form-select"
+                                    >
+                                        <option value="client_secret_basic">
+                                            {{ $t("Authorization Header") }}
+                                        </option>
+                                        <option value="client_secret_post">
+                                            {{ $t("Form Data Body") }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="my-3">
+                                    <label for="oauth_token_url" class="form-label">
+                                        {{ $t("OAuth Token URL") }}
+                                    </label>
+                                    <input
+                                        id="oauth_token_url"
+                                        v-model="monitor.oauth_token_url"
+                                        type="text"
+                                        class="form-control"
+                                        :placeholder="$t('OAuth Token URL')"
+                                        required
+                                    />
+                                </div>
+                                <div class="my-3">
+                                    <label for="oauth_client_id" class="form-label">{{ $t("Client ID") }}</label>
+                                    <input
+                                        id="oauth_client_id"
+                                        v-model="monitor.oauth_client_id"
+                                        type="text"
+                                        class="form-control"
+                                        :placeholder="$t('Client ID')"
+                                        required
+                                    />
+                                </div>
+                                <template
+                                    v-if="
+                                        monitor.oauth_auth_method === 'client_secret_post' ||
+                                        monitor.oauth_auth_method === 'client_secret_basic'
+                                    "
+                                >
+                                    <div class="my-3">
+                                        <label for="oauth_client_secret" class="form-label">
+                                            {{ $t("Client Secret") }}
+                                        </label>
+                                        <input
+                                            id="oauth_client_secret"
+                                            v-model="monitor.oauth_client_secret"
+                                            type="password"
+                                            class="form-control"
+                                            :placeholder="$t('Client Secret')"
+                                            required
+                                        />
+                                    </div>
+                                    <div class="my-3">
+                                        <label for="oauth_scopes" class="form-label">{{ $t("OAuth Scope") }}</label>
+                                        <input
+                                            id="oauth_scopes"
+                                            v-model="monitor.oauth_scopes"
+                                            type="text"
+                                            class="form-control"
+                                            :placeholder="$t('Optional: Space separated list of scopes')"
+                                        />
+                                    </div>
+                                    <div class="my-3">
+                                        <label for="oauth_audience" class="form-label">
+                                            {{ $t("OAuth Audience") }}
+                                        </label>
+                                        <input
+                                            id="oauth_audience"
+                                            v-model="monitor.oauth_audience"
+                                            type="text"
+                                            class="form-control"
+                                            :placeholder="$t('Optional: The audience to request the JWT for')"
+                                        />
                                     </div>
                                 </template>
                             </template>
 
-                            <!-- gRPC Options -->
-                            <template v-if="monitor.type === 'grpc-keyword'">
-                                <!-- Proto service enable TLS -->
-                                <h2 class="mt-5 mb-2">{{ $t("GRPC Options") }}</h2>
+                            <!-- Response -->
+                            <h2 class="mt-5 mb-2">{{ $t("Response") }}</h2>
+                            <div class="my-3">
+                                <label for="checkfor" class="form-label">{{ $t("Check for") }}</label>
+                                <select id="checkfor" v-model="monitor.responsecheck" class="form-select">
+                                    <option :value="null">
+                                        {{ $t("None") }}
+                                    </option>
+                                    <option value="keyword">
+                                        {{ $t("Keyword") }}
+                                    </option>
+                                    <option value="json-query">
+                                        {{ $t("Json Query Expression") }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <!-- Keyword -->
+                            <template v-if="monitor.responsecheck === 'keyword'">
+                                <div class="my-3">
+                                    <label for="keyword" class="form-label">{{ $t("Keyword") }}</label>
+                                    <input id="keyword" v-model="monitor.keyword" type="text" class="form-control" />
+                                    <div class="form-text">
+                                        {{ $t("keywordDescription") }}
+                                    </div>
+                                </div>
+
+                                <!-- Invert keyword -->
                                 <div class="my-3 form-check">
                                     <input
-                                        id="grpc-enable-tls"
-                                        v-model="monitor.grpcEnableTls"
+                                        id="invert-keyword"
+                                        v-model="monitor.invertKeyword"
                                         class="form-check-input"
                                         type="checkbox"
-                                        value=""
                                     />
-                                    <label class="form-check-label" for="grpc-enable-tls">
-                                        {{ $t("Enable TLS") }}
+                                    <label class="form-check-label" for="invert-keyword">
+                                        {{ $t("Invert Keyword") }}
                                     </label>
                                     <div class="form-text">
-                                        {{ $t("enableGRPCTls") }}
+                                        {{ $t("invertKeywordDescription") }}
                                     </div>
-                                </div>
-                                <!-- Proto service name data -->
-                                <div class="my-3">
-                                    <label for="protobuf" class="form-label">{{ $t("Proto Service Name") }}</label>
-                                    <input
-                                        id="name"
-                                        v-model="monitor.grpcServiceName"
-                                        type="text"
-                                        class="form-control"
-                                        :placeholder="protoServicePlaceholder"
-                                        required
-                                    />
-                                </div>
-
-                                <!-- Proto method data -->
-                                <div class="my-3">
-                                    <label for="protobuf" class="form-label">{{ $t("Proto Method") }}</label>
-                                    <input
-                                        id="name"
-                                        v-model="monitor.grpcMethod"
-                                        type="text"
-                                        class="form-control"
-                                        :placeholder="protoMethodPlaceholder"
-                                        required
-                                    />
-                                    <div class="form-text">
-                                        {{ $t("grpcMethodDescription") }}
-                                    </div>
-                                </div>
-
-                                <!-- Proto data -->
-                                <div class="my-3">
-                                    <label for="protobuf" class="form-label">{{ $t("Proto Content") }}</label>
-                                    <textarea
-                                        id="protobuf"
-                                        v-model="monitor.grpcProtobuf"
-                                        class="form-control"
-                                        :placeholder="protoBufDataPlaceholder"
-                                    ></textarea>
-                                </div>
-
-                                <!-- Body -->
-                                <div class="my-3">
-                                    <label for="body" class="form-label">{{ $t("Body") }}</label>
-                                    <textarea
-                                        id="body"
-                                        v-model="monitor.grpcBody"
-                                        class="form-control"
-                                        :placeholder="bodyPlaceholder"
-                                    ></textarea>
                                 </div>
                             </template>
-                        </div>
-                    </div>
 
-                    <div class="fixed-bottom-bar p-3">
-                        <button
-                            id="monitor-submit-btn"
-                            class="btn btn-primary"
-                            type="submit"
-                            :disabled="processing"
-                            data-testid="save-button"
-                        >
-                            {{ $t("Save") }}
-                        </button>
+                            <!-- Json Query -->
+                            <template v-if="monitor.responsecheck === 'json-query'">
+                                <div class="my-3">
+                                    <div class="my-2">
+                                        <label for="jsonPath" class="form-label mb-0">
+                                            {{ $t("Json Query Expression") }}
+                                        </label>
+                                        <i18n-t tag="div" class="form-text mb-2" keypath="jsonQueryDescription">
+                                            <a href="https://jsonata.org/">jsonata.org</a>
+                                            <a href="https://try.jsonata.org/">{{ $t("playground") }}</a>
+                                        </i18n-t>
+                                        <input
+                                            id="jsonPath"
+                                            v-model="monitor.jsonPath"
+                                            type="text"
+                                            class="form-control"
+                                            placeholder="$"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div class="d-flex align-items-start">
+                                        <div class="me-2">
+                                            <label for="json_path_operator" class="form-label">
+                                                {{ $t("Condition") }}
+                                            </label>
+                                            <select
+                                                id="json_path_operator"
+                                                v-model="monitor.jsonPathOperator"
+                                                class="form-select me-3"
+                                                required
+                                            >
+                                                <option value=">">&gt;</option>
+                                                <option value=">=">&gt;=</option>
+                                                <option value="<">&lt;</option>
+                                                <option value="<=">&lt;=</option>
+                                                <option value="!=">&#33;=</option>
+                                                <option value="==">==</option>
+                                                <option value="contains">contains</option>
+                                            </select>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <label for="expectedValue" class="form-label">
+                                                {{ $t("Expected Value") }}
+                                            </label>
+                                            <input
+                                                v-if="
+                                                    monitor.jsonPathOperator !== 'contains' &&
+                                                    monitor.jsonPathOperator !== '==' &&
+                                                    monitor.jsonPathOperator !== '!='
+                                                "
+                                                id="expectedValue"
+                                                v-model="monitor.expectedValue"
+                                                type="number"
+                                                class="form-control"
+                                                required
+                                                step=".01"
+                                            />
+                                            <input
+                                                v-else
+                                                id="expectedValue"
+                                                v-model="monitor.expectedValue"
+                                                type="text"
+                                                class="form-control"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </template>
+
+                        <!-- gRPC Options -->
+                        <template v-if="monitor.type === 'grpc-keyword'">
+                            <!-- Proto service enable TLS -->
+                            <h2 class="mt-5 mb-2">{{ $t("GRPC Options") }}</h2>
+                            <div class="my-3 form-check">
+                                <input
+                                    id="grpc-enable-tls"
+                                    v-model="monitor.grpcEnableTls"
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    value=""
+                                />
+                                <label class="form-check-label" for="grpc-enable-tls">
+                                    {{ $t("Enable TLS") }}
+                                </label>
+                                <div class="form-text">
+                                    {{ $t("enableGRPCTls") }}
+                                </div>
+                            </div>
+                            <!-- Proto service name data -->
+                            <div class="my-3">
+                                <label for="protobuf" class="form-label">{{ $t("Proto Service Name") }}</label>
+                                <input
+                                    id="name"
+                                    v-model="monitor.grpcServiceName"
+                                    type="text"
+                                    class="form-control"
+                                    :placeholder="protoServicePlaceholder"
+                                    required
+                                />
+                            </div>
+
+                            <!-- Proto method data -->
+                            <div class="my-3">
+                                <label for="protobuf" class="form-label">{{ $t("Proto Method") }}</label>
+                                <input
+                                    id="name"
+                                    v-model="monitor.grpcMethod"
+                                    type="text"
+                                    class="form-control"
+                                    :placeholder="protoMethodPlaceholder"
+                                    required
+                                />
+                                <div class="form-text">
+                                    {{ $t("grpcMethodDescription") }}
+                                </div>
+                            </div>
+
+                            <!-- Proto data -->
+                            <div class="my-3">
+                                <label for="protobuf" class="form-label">{{ $t("Proto Content") }}</label>
+                                <textarea
+                                    id="protobuf"
+                                    v-model="monitor.grpcProtobuf"
+                                    class="form-control"
+                                    :placeholder="protoBufDataPlaceholder"
+                                ></textarea>
+                            </div>
+
+                            <!-- Body -->
+                            <div class="my-3">
+                                <label for="body" class="form-label">{{ $t("Body") }}</label>
+                                <textarea
+                                    id="body"
+                                    v-model="monitor.grpcBody"
+                                    class="form-control"
+                                    :placeholder="bodyPlaceholder"
+                                ></textarea>
+                            </div>
+                        </template>
                     </div>
                 </div>
-            </form>
 
-            <NotificationDialog ref="notificationDialog" @added="addedNotification" />
-            <DockerHostDialog ref="dockerHostDialog" @added="addedDockerHost" />
-            <ProxyDialog ref="proxyDialog" @added="addedProxy" />
-            <CreateGroupDialog ref="createGroupDialog" @added="addedDraftGroup" />
-            <RemoteBrowserDialog ref="remoteBrowserDialog" />
-            <Confirm
-                ref="confirmLowIntervalValue"
-                btn-style="btn-danger"
-                :yes-text="$t('Confirm')"
-                :no-text="$t('Cancel')"
-                @yes="handleIntervalConfirm"
-            >
-                <p>{{ $t("lowIntervalWarning") }}</p>
-                <p>{{ $t("Please use this option carefully!") }}</p>
-            </Confirm>
-        </div>
-    </transition>
+                <div class="fixed-bottom-bar p-3">
+                    <button
+                        id="monitor-submit-btn"
+                        class="btn btn-primary"
+                        type="submit"
+                        :disabled="processing"
+                        data-testid="save-button"
+                    >
+                        {{ $t("Save") }}
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <NotificationDialog ref="notificationDialog" @added="addedNotification" />
+        <DockerHostDialog ref="dockerHostDialog" @added="addedDockerHost" />
+        <ProxyDialog ref="proxyDialog" @added="addedProxy" />
+        <CreateGroupDialog ref="createGroupDialog" @added="addedDraftGroup" />
+        <RemoteBrowserDialog ref="remoteBrowserDialog" />
+        <Confirm
+            ref="confirmLowIntervalValue"
+            btn-style="btn-danger"
+            :yes-text="$t('Confirm')"
+            :no-text="$t('Cancel')"
+            @yes="handleIntervalConfirm"
+        >
+            <p>{{ $t("lowIntervalWarning") }}</p>
+            <p>{{ $t("Please use this option carefully!") }}</p>
+        </Confirm>
+    </div>
 </template>
 
 <script>

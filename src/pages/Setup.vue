@@ -1,10 +1,10 @@
 <template>
-    <div v-if="ready" class="form-container">
+    <div v-if="ready" class="form-container carbon" :class="$root.theme">
         <div class="form">
             <form @submit.prevent="submit">
                 <div>
-                    <object width="64" height="64" data="/icon.svg" />
-                    <div style="font-size: 28px; font-weight: bold; margin-top: 5px">Uptime Kuma</div>
+                    <object width="40" height="40" data="/icon.svg" aria-hidden="true" />
+                    <div class="mt-2" style="font-size: 20px; font-weight: 600">Uptime Kuma</div>
                 </div>
 
                 <p class="mt-3">

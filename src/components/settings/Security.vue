@@ -7,7 +7,7 @@
                     <button
                         v-if="!settings.disableAuth"
                         id="logout-btn"
-                        class="btn btn-danger ms-4 me-2 mb-2"
+                        class="btn btn-normal me-2 mb-2"
                         @click="$root.logout"
                     >
                         {{ $t("logoutCurrentUser", { username: $root.username }) }}
@@ -75,7 +75,7 @@
                     {{ $t("Two Factor Authentication") }}
                 </h5>
                 <div class="mb-4">
-                    <button class="btn btn-primary me-2" type="button" @click="$refs.TwoFADialog.show()">
+                    <button class="btn btn-normal me-2" type="button" @click="$refs.TwoFADialog.show()">
                         {{ $t("2FA Settings") }}
                     </button>
                 </div>
@@ -97,7 +97,7 @@
                     <button
                         v-if="!settings.disableAuth"
                         id="disableAuth-btn"
-                        class="btn btn-primary me-2 mb-2"
+                        class="btn btn-normal me-2 mb-2"
                         @click="confirmDisableAuth"
                     >
                         {{ $t("Disable Auth") }}
@@ -167,13 +167,13 @@ export default {
 
     computed: {
         settings() {
-            return this.$parent.$parent.$parent.settings;
+            return this.$parent.$parent.settings;
         },
         saveSettings() {
-            return this.$parent.$parent.$parent.saveSettings;
+            return this.$parent.$parent.saveSettings;
         },
         settingsLoaded() {
-            return this.$parent.$parent.$parent.settingsLoaded;
+            return this.$parent.$parent.settingsLoaded;
         },
     },
 

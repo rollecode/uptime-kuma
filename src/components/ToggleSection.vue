@@ -6,11 +6,9 @@
                 <font-awesome-icon icon="chevron-down" class="animated" :class="{ open: isOpen }" />
             </div>
         </h5>
-        <transition name="slide-fade-up">
-            <div v-if="isOpen" class="mt-3">
-                <slot></slot>
-            </div>
-        </transition>
+        <div v-if="isOpen" class="mt-3">
+            <slot></slot>
+        </div>
     </div>
 </template>
 
@@ -49,9 +47,5 @@ h5::after {
 
 .open {
     transform: rotate(180deg);
-}
-
-.animated {
-    transition: all 0.2s $easing-in;
 }
 </style>

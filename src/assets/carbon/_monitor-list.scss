@@ -1,0 +1,514 @@
+// Carbon monitor list: finding sentence, pill search, underline tabs, grouped rows
+
+.carbon-top {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    h1 {
+        margin: 0;
+    }
+}
+
+.carbon-finding {
+    margin: 2px 0 0;
+    color: var(--c-fg-2);
+
+    b {
+        font-weight: 500;
+        color: var(--c-down);
+    }
+}
+
+.carbon-tools {
+    display: flex;
+    gap: 12px;
+    margin-left: auto;
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        height: 32px;
+        padding: 0 14px;
+        white-space: nowrap;
+    }
+}
+
+.carbon-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 240px;
+    height: 32px;
+    margin: 0;
+    padding: 0 14px;
+    border-radius: var(--c-radius);
+    background-color: var(--c-field);
+    color: var(--c-muted);
+
+    input {
+        all: unset;
+        flex: 1 1 auto;
+        min-width: 0;
+        color: var(--c-fg);
+
+        &::placeholder {
+            color: var(--c-muted);
+        }
+    }
+
+    .search-icon {
+        border: 0;
+        padding: 0;
+        background: none;
+        color: var(--c-muted);
+    }
+
+    &:focus-within {
+        box-shadow: 0 0 0 1px var(--c-line-strong);
+    }
+}
+
+.carbon-tabs {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin: 24px 0 8px;
+    border-bottom: 1px solid var(--c-rule);
+
+    .filters-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: auto;
+        padding-bottom: 6px;
+
+        .form-check-input {
+            margin: 0;
+            cursor: pointer;
+        }
+    }
+}
+
+.carbon-tab {
+    flex: 0 0 auto;
+    margin-bottom: -1px;
+    white-space: nowrap;
+    padding: 0 0 10px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--c-muted);
+    font: inherit;
+
+    span {
+        margin-left: 6px;
+        color: var(--c-faint);
+    }
+
+    &:hover {
+        color: var(--c-fg);
+    }
+
+    &.is-on {
+        color: var(--c-fg);
+        border-bottom-color: var(--c-fg);
+    }
+}
+
+// Toolbar controls: one 28px quiet shape
+.carbon-tool {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: var(--c-radius);
+    background: none;
+    color: var(--c-fg-2);
+    font: inherit;
+    font-size: 12px;
+    white-space: nowrap;
+
+    &:hover,
+    &.is-on,
+    &[data-filtered="true"],
+    &[aria-expanded="true"] {
+        color: var(--c-fg);
+        background-color: var(--c-fill);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+    }
+}
+
+.carbon-tool-icon {
+    justify-content: center;
+    width: 28px;
+    padding: 0;
+}
+
+.carbon-tool-danger:hover {
+    color: var(--c-down);
+}
+
+.carbon-filter-chip {
+    align-self: center;
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+
+.carbon-selectbar {
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 6px;
+
+    .count {
+        margin-right: 8px;
+        font-weight: 500;
+    }
+}
+
+// Menu rows: tick, dot, label, count
+.carbon-menu {
+    width: 240px;
+
+    .carbon-menu-heading {
+        padding: 6px 10px 2px;
+        font-size: 12px;
+        color: var(--c-muted);
+    }
+
+    .dropdown-item {
+        min-height: 32px;
+    }
+
+    .carbon-dot {
+        width: 12px;
+    }
+
+    // The count gives way to a checkbox on hover, focus and when the row is chosen
+    .count,
+    .menu-check {
+        margin-left: auto;
+    }
+
+    .count {
+        padding-left: 12px;
+        color: var(--c-muted);
+        font-size: 12px;
+    }
+
+    .menu-check {
+        display: none;
+        margin-top: 0;
+        pointer-events: none;
+    }
+
+    .dropdown-item:is(:hover, :focus-visible, [aria-pressed="true"]) {
+        .count {
+            display: none;
+        }
+
+        .menu-check {
+            display: block;
+        }
+    }
+}
+
+.carbon-empty-line {
+    padding: 24px 4px;
+    color: var(--c-muted);
+}
+
+.carbon-monitors {
+    .draggable-item {
+        display: flex;
+        align-items: flex-start;
+    }
+
+    .drag-over {
+        outline: 1px dashed var(--c-muted);
+        outline-offset: -1px;
+        border-radius: 8px;
+        background-color: var(--c-hover);
+    }
+}
+
+.carbon-group {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    margin: 22px 0 4px;
+    color: var(--c-muted);
+
+    .count {
+        color: var(--c-faint);
+    }
+}
+
+.carbon-group-toggle {
+    display: flex;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+}
+
+.carbon a.carbon-group-name {
+    color: var(--c-muted);
+    text-decoration: none;
+
+    &:hover {
+        color: var(--c-fg);
+    }
+}
+
+.carbon-row {
+    position: relative;
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: 20px minmax(220px, 1fr) 300px 64px 64px 48px 20px;
+    gap: 16px;
+    align-items: start;
+    min-width: 0;
+    margin-inline: -8px;
+    padding: 12px;
+    border-bottom: 1px solid var(--c-line);
+    border-radius: 8px;
+    transition: background-color 0.08s;
+
+    &:hover {
+        background-color: var(--c-row-hover);
+    }
+
+    &:has(a.nm:focus-visible) {
+        background-color: var(--c-row-hover);
+        box-shadow: inset 0 0 0 1px var(--c-accent);
+    }
+
+    a.nm:focus-visible {
+        outline: none;
+    }
+
+    &.disabled {
+        opacity: 0.5;
+    }
+
+    .carbon-name {
+        min-width: 0;
+    }
+
+    a.nm {
+        display: block;
+        overflow: hidden;
+        font-weight: 500;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        text-decoration: none;
+        color: var(--c-fg);
+    }
+
+    .sub {
+        color: var(--c-muted);
+    }
+
+    .tags {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 4px;
+    }
+
+    // Above the stretched link, so tooltips and the menu still work
+    .carbon-bars,
+    .carbon-kebab {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+    }
+
+    .num {
+        text-align: right;
+        color: var(--c-fg);
+    }
+
+    .mut {
+        text-align: right;
+        color: var(--c-muted);
+    }
+}
+
+.carbon-kebab-btn {
+    width: 20px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--c-faint);
+    line-height: 20px;
+
+    &:hover {
+        color: var(--c-fg);
+    }
+}
+
+// The status dot gives way to a checkbox on hover and in select mode
+.carbon-dot-cell {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+
+    > * {
+        grid-area: 1 / 1;
+    }
+
+    .carbon-dot {
+        pointer-events: none;
+    }
+
+    .carbon-row-check {
+        margin: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+}
+
+.carbon-row:hover,
+.carbon-row.is-selecting,
+.carbon-row.is-selected {
+    .carbon-row-check {
+        opacity: 1;
+    }
+
+    .carbon-dot {
+        opacity: 0;
+    }
+}
+
+.carbon-row.is-selected {
+    background-color: var(--c-hover);
+}
+
+// Status dot, its halo and the matching word, used across Carbon pages
+.carbon-dot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+
+    i {
+        display: block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: var(--dot);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--dot) 16%, transparent);
+    }
+}
+
+.carbon {
+    .up {
+        --dot: var(--c-up);
+    }
+
+    .down {
+        --dot: var(--c-down);
+    }
+
+    .pending {
+        --dot: var(--c-pending);
+    }
+
+    .maintenance {
+        --dot: var(--c-maintenance);
+    }
+
+    .wait,
+    .paused {
+        --dot: var(--c-faint);
+    }
+
+    .s-up {
+        color: var(--c-up);
+    }
+
+    .s-down {
+        color: var(--c-down);
+    }
+
+    .s-pending {
+        color: var(--c-pending);
+    }
+
+    .s-maintenance {
+        color: var(--c-maintenance);
+    }
+
+    .s-wait,
+    .s-paused {
+        color: var(--c-fg-2);
+    }
+}
+
+@media (max-width: 1279.98px) {
+    .carbon-row {
+        grid-template-columns: 20px minmax(160px, 1fr) 180px 64px 64px 20px;
+
+        .every {
+            display: none;
+        }
+    }
+}
+
+@media (max-width: 767.98px) {
+    .carbon-tools {
+        width: 100%;
+        margin-left: 0;
+
+        .carbon-search {
+            flex: 1 1 auto;
+            width: auto;
+        }
+    }
+
+    // Tools get their own line above the tabs, so long counts never push them off screen
+    .carbon-tabs {
+        gap: 8px 14px;
+        margin-top: 16px;
+
+        .filters-group {
+            order: -1;
+            flex: 1 0 100%;
+            justify-content: flex-end;
+            gap: 2px;
+            padding-bottom: 0;
+        }
+    }
+
+    .carbon-row {
+        grid-template-columns: 20px minmax(0, 1fr) auto;
+        gap: 6px 12px;
+
+        .carbon-bars {
+            grid-row: 2;
+            grid-column: 2 / -1;
+        }
+
+        .mut,
+        .carbon-kebab {
+            display: none;
+        }
+    }
+}

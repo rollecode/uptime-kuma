@@ -1,0 +1,365 @@
+// Carbon monitor detail, and the pieces other pages share with it:
+// quiet actions, facts, segmented control, card, plain table, copy field, disclosure
+
+.carbon-muted {
+    color: var(--c-muted);
+}
+
+.carbon-section {
+    margin-top: 32px;
+
+    h2 {
+        margin: 0 0 10px;
+        font-size: 14px;
+        line-height: 20px;
+        font-weight: 500;
+    }
+}
+
+.carbon-section-head h2 {
+    font-weight: 500;
+}
+
+.carbon a.carbon-detail-group {
+    color: var(--c-muted);
+    text-decoration: none;
+
+    &:hover {
+        color: var(--c-fg);
+    }
+}
+
+.carbon-detail-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px;
+
+    h1 {
+        margin: 0;
+    }
+
+    .monitor-id {
+        margin-left: 4px;
+        font-size: 13px;
+        font-weight: 400;
+        color: var(--c-faint);
+    }
+
+    .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 8px;
+    }
+}
+
+.carbon-detail-title {
+    flex: 1 1 320px;
+    min-width: 0;
+}
+
+.carbon-detail-sub,
+.carbon-detail-desc {
+    color: var(--c-muted);
+    overflow-wrap: anywhere;
+
+    .carbon & a {
+        color: var(--c-muted);
+        text-decoration: none;
+
+        &:hover {
+            color: var(--c-fg);
+        }
+    }
+
+    p {
+        margin: 0;
+    }
+}
+
+.carbon-detail-desc {
+    margin-top: 4px;
+    color: var(--c-fg-2);
+}
+
+.carbon-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+}
+
+.carbon .carbon-action,
+.carbon a.carbon-action {
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: var(--c-fg-2);
+    font: inherit;
+    text-decoration: none;
+
+    &:hover {
+        color: var(--c-fg);
+        background-color: var(--c-fill);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+    }
+}
+
+.carbon-facts {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 16px;
+    margin: 22px 0 24px;
+
+    .fact {
+        padding: 0 24px;
+        border-left: 1px solid var(--c-rule);
+
+        &:first-child {
+            padding-left: 0;
+            border-left: 0;
+        }
+    }
+
+    .k {
+        font-size: 12px;
+        color: var(--c-muted);
+    }
+
+    .v {
+        margin-top: 2px;
+        font-size: 18px;
+        line-height: 26px;
+        font-weight: 500;
+        color: var(--c-fg);
+    }
+
+    .v.s-up {
+        color: var(--c-up);
+    }
+
+    .v.s-down {
+        color: var(--c-down);
+    }
+
+    .v.s-pending {
+        color: var(--c-pending);
+    }
+
+    .v.s-maintenance {
+        color: var(--c-maintenance);
+    }
+}
+
+.carbon-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: left;
+}
+
+.carbon-strip-bars {
+    width: 100%;
+}
+
+.carbon-seg {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 8px;
+    background-color: var(--c-field);
+
+    button {
+        height: 24px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 6px;
+        background: none;
+        color: var(--c-muted);
+        font: inherit;
+        font-size: 12px;
+
+        &:hover {
+            color: var(--c-fg);
+        }
+
+        &.is-on {
+            color: var(--c-fg);
+            background-color: var(--c-fill);
+        }
+    }
+}
+
+.carbon.dark .carbon-seg button.is-on {
+    background-color: #26262b;
+}
+
+.carbon-card {
+    margin-top: 32px;
+    padding: 20px 24px;
+    border-radius: 12px;
+    background-color: var(--c-surface);
+
+    .carbon-section-head {
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .carbon-muted {
+        margin: 24px 0 8px;
+    }
+}
+
+.carbon-table {
+    width: 100%;
+    margin-top: 16px;
+    border-collapse: collapse;
+
+    th {
+        padding: 8px 12px 8px 0;
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--c-muted);
+        text-align: left;
+        border-bottom: 1px solid var(--c-rule);
+    }
+
+    td {
+        padding: 10px 12px 10px 0;
+        border-bottom: 1px solid var(--c-line);
+    }
+
+    td:not(:first-child) {
+        color: var(--c-fg-2);
+    }
+}
+
+.carbon-copy {
+    display: flex;
+    gap: 8px;
+    max-width: 720px;
+
+    .form-control {
+        font-family: var(--c-mono);
+        font-size: 12px;
+        font-variant-ligatures: contextual common-ligatures;
+    }
+
+    .btn {
+        flex: 0 0 auto;
+    }
+}
+
+.carbon-disclosure {
+    margin-top: 16px;
+
+    summary {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--c-fg-2);
+        cursor: pointer;
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+
+        &::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-right: 1.5px solid currentcolor;
+            border-bottom: 1.5px solid currentcolor;
+            transform: rotate(-45deg);
+            transition: transform 0.08s;
+        }
+
+        &:hover {
+            color: var(--c-fg);
+        }
+    }
+
+    &[open] summary::before {
+        transform: rotate(45deg);
+    }
+
+    .carbon-seg {
+        margin-top: 12px;
+    }
+}
+
+.carbon-code {
+    position: relative;
+    max-width: 880px;
+    margin-top: 8px;
+
+    .css-editor {
+        border: 0;
+        border-radius: 10px;
+        padding: 14px 16px;
+        background-color: var(--c-field);
+        font-size: 12px;
+    }
+}
+
+.carbon-code-copy {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    height: 24px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 6px;
+    background-color: var(--c-fill);
+    color: var(--c-fg-2);
+    font: inherit;
+    font-size: 12px;
+
+    &:hover {
+        color: var(--c-fg);
+    }
+}
+
+@media (max-width: 767.98px) {
+    .carbon-actions {
+        margin-left: -10px;
+    }
+
+    .carbon-facts {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+
+        .fact {
+            padding: 0;
+            border: 0;
+        }
+
+        .v {
+            font-size: 16px;
+        }
+    }
+
+    .carbon-card {
+        padding: 16px;
+    }
+
+    .carbon-table {
+        font-size: 12px;
+
+        th:nth-child(n + 5),
+        td:nth-child(n + 5) {
+            display: none;
+        }
+    }
+}

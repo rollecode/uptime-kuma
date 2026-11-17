@@ -35,7 +35,7 @@ async function addPushMonitor(page, name) {
     await page.getByTestId("friendly-name-input").fill(name);
     await page.getByTestId("save-button").click();
     await page.waitForURL(/\/dashboard\/\d+/);
-    return await page.locator('a[href*="/api/push/"]').first().getAttribute("href");
+    return await page.getByLabel("Push URL").inputValue();
 }
 
 /**

@@ -15,7 +15,7 @@
         <div class="p-1">
             <button
                 type="button"
-                class="btn btn-outline-secondary btn-add"
+                class="btn btn-normal btn-add"
                 :disabled="processing"
                 data-testid="add-tag-button"
                 @click.stop="showAddDialog"
@@ -692,10 +692,6 @@ export default {
 </script>
 
 <style scoped>
-.btn-add {
-    width: 100%;
-}
-
 .modal-body {
     padding: 1.5rem;
 }

@@ -1,0 +1,73 @@
+// Carbon: a quiet theme for the dashboard. Status pages do not use it.
+// Colour is kept for status and data, everything else is greyscale.
+
+.carbon {
+    --c-bg: #fff;
+    --c-surface: #f7f7f8;
+    --c-field: #f2f2f3;
+    --c-fill: #ededef;
+    --c-hover: #fafafa;
+    --c-row-hover: #f4f4f5;
+    --c-line: #ededef;
+    --c-line-strong: #e3e3e6;
+    --c-rule: #e8e8ea;
+    --c-fg: #111113;
+    --c-fg-2: #4f4f55;
+    --c-muted: #5f5f65;
+    --c-faint: #6e6e74;
+    --c-up: #1f9d55;
+    --c-down: #e5484d;
+    --c-pending: #c98a00;
+    --c-maintenance: #3e63dd;
+    --c-data: #6d5fd6;
+    --c-accent: #6d5fd6;
+    --c-tick: #6e6e74;
+    --c-bar-up: #45b97a;
+    --c-bar-empty: #e6e6e8;
+    --c-button: #111113;
+    --c-button-fg: #fff;
+    --c-radius: 999px;
+    --c-mono: "Liga SFMono Nerd Font", "SF Mono", sfmono-regular, ui-monospace, menlo, consolas, monospace;
+
+    // Read by HeartbeatBar
+    --beat-up: var(--c-bar-up);
+    --beat-down: var(--c-down);
+    --beat-pending: var(--c-pending);
+    --beat-maintenance: var(--c-maintenance);
+    --beat-empty: var(--c-bar-empty);
+}
+
+.carbon.dark {
+    --c-bg: #000;
+    --c-surface: #0b0b0c;
+    --c-field: #0d0d0f;
+    --c-fill: #111113;
+    --c-hover: #0a0a0b;
+    --c-row-hover: #0e0e10;
+    --c-line: #121214;
+    --c-line-strong: #1f1f23;
+    --c-rule: #161618;
+    --c-fg: #ededed;
+    --c-fg-2: #a1a1a6;
+    --c-muted: #8f8f95;
+    --c-faint: #808086;
+    --c-up: #45d483;
+    --c-down: #ff7369;
+    --c-pending: #f5b54a;
+    --c-maintenance: #5b8def;
+    --c-data: #8b8cf8;
+    --c-accent: #8b8cf8;
+    --c-tick: #7c7c82;
+    --c-bar-up: #2e8f5a;
+    --c-bar-empty: #1a1a1d;
+    --c-button: #ededed;
+    --c-button-fg: #000;
+
+    // Recolour the stock dark theme (see vars.scss)
+    --kuma-dark-font-color: var(--c-fg);
+    --kuma-dark-font-color2: #000;
+    --kuma-dark-bg: var(--c-surface);
+    --kuma-dark-bg2: var(--c-field);
+    --kuma-dark-border-color: var(--c-line-strong);
+    --kuma-dark-header-bg: var(--c-fill);
+}

@@ -1,0 +1,296 @@
+// Carbon menus, dialogs, tooltips, toasts and pagination
+
+.carbon {
+    .dropdown-menu,
+    .filter-dropdown-menu {
+        min-width: 220px;
+        padding: 4px;
+        border: 1px solid var(--c-line-strong);
+        border-radius: 10px;
+        background-color: var(--c-bg);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 32px;
+        padding: 0 10px;
+        border-radius: 6px;
+        color: var(--c-fg);
+
+        &:hover,
+        &:focus-visible {
+            background-color: var(--c-fill);
+        }
+
+        &.active,
+        &:active {
+            color: var(--c-fg);
+            background-color: var(--c-fill);
+        }
+    }
+
+    .dropdown-item-text {
+        padding: 6px 10px;
+        color: var(--c-muted);
+    }
+
+    .dropdown-toggle::after {
+        width: 12px;
+        height: 12px;
+        margin-left: 2px;
+        border: 0;
+        background: var(--c-chevron) no-repeat center / 12px;
+        vertical-align: middle;
+    }
+
+    .modal-content {
+        background-color: var(--c-bg);
+        color: var(--c-fg);
+    }
+
+    .modal-header,
+    .modal-footer {
+        border: 0;
+    }
+
+    .modal-footer {
+        gap: 8px;
+        padding-top: 0;
+    }
+
+    // Floating labels read as a label above the field
+    .form-floating {
+        display: flex;
+        flex-direction: column-reverse;
+
+        > label {
+            position: static;
+            height: auto;
+            padding: 0 0 6px;
+            border: 0;
+            opacity: 1;
+            transform: none;
+            color: var(--c-fg);
+            text-align: left;
+        }
+
+        > .form-control,
+        > .form-select {
+            height: 32px;
+            min-height: 32px;
+            padding: 0 12px;
+
+            &::placeholder {
+                color: transparent;
+            }
+        }
+    }
+
+    .pagination {
+        gap: 2px;
+    }
+
+    .page-link {
+        min-width: 28px;
+        height: 28px;
+        padding: 0 8px;
+        border: 0;
+        border-radius: 6px !important;
+        background: none;
+        color: var(--c-muted);
+        line-height: 28px;
+        text-align: center;
+        box-shadow: none;
+
+        &:hover {
+            color: var(--c-fg);
+            background-color: var(--c-fill);
+        }
+    }
+
+    .page-item.active .page-link {
+        color: var(--c-fg);
+        background-color: var(--c-fill);
+    }
+
+    .page-item.disabled .page-link {
+        background: none;
+        opacity: 0.4;
+    }
+}
+
+.carbon.dark {
+    .dropdown-menu,
+    .filter-dropdown-menu,
+    .modal-content {
+        background-color: var(--c-surface);
+    }
+
+    .dropdown-menu,
+    .filter-dropdown-menu {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+}
+
+.carbon a.carbon-row-link {
+    color: var(--c-fg);
+    text-decoration: none;
+
+    &:hover {
+        background-color: var(--c-hover);
+    }
+}
+
+// Maintenance time inside a list row reads as one grey line
+.carbon-event .sub > div,
+.carbon-event .sub .timeslot {
+    display: inline;
+    margin: 0 0 0 4px;
+    padding: 0;
+    background: none;
+    color: inherit;
+    font-size: inherit;
+}
+
+.carbon-status-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.carbon-page .carbon-top {
+    align-items: center;
+}
+
+// Body-level pieces (heartbeat tooltip, toasts) only when the dashboard is open
+body:has(.carbon) {
+    .tooltip-wrapper .tooltip-content.tooltip-content {
+        border: 1px solid #1f1f23;
+        border-radius: 8px;
+        background: #0b0b0c;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        backdrop-filter: none;
+        font-family: "Geist Variable", system-ui, sans-serif;
+
+        &::before {
+            display: none;
+        }
+
+        .tooltip-status {
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+
+        .tooltip-time {
+            color: #a1a1a6;
+            font-size: 12px;
+        }
+
+        .tooltip-message {
+            color: #ededed;
+            border-top-color: #1f1f23;
+        }
+    }
+
+    .tooltip-wrapper .tooltip-arrow {
+        display: none;
+    }
+
+    .Vue-Toastification__toast {
+        min-height: 48px;
+        padding: 12px 14px;
+        border: 1px solid #1f1f23;
+        border-radius: 12px;
+        background: #0b0b0c;
+        color: #ededed;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+        font-family: "Geist Variable", system-ui, sans-serif;
+        font-size: 13px;
+    }
+
+    .Vue-Toastification__toast-body {
+        font-size: 13px;
+        line-height: 20px;
+    }
+
+    .Vue-Toastification__close-button {
+        color: #8f8f95;
+        font-size: 18px;
+        opacity: 1;
+    }
+
+    .Vue-Toastification__progress-bar {
+        height: 2px;
+        background-color: #3a3a40;
+    }
+
+    .Vue-Toastification__icon {
+        width: 16px;
+        height: 16px;
+        margin-right: 12px;
+    }
+
+    .Vue-Toastification__toast--success .Vue-Toastification__icon {
+        color: #45d483;
+    }
+
+    .Vue-Toastification__toast--error .Vue-Toastification__icon {
+        color: #ff7369;
+    }
+
+    .Vue-Toastification__toast--warning .Vue-Toastification__icon {
+        color: #f5b54a;
+    }
+
+    .Vue-Toastification__toast--info .Vue-Toastification__icon {
+        color: #5b8def;
+    }
+}
+
+// A row that goes somewhere: the whole row is the link, with a faint rounded hover
+.carbon-linkrow {
+    position: relative;
+    margin-inline: -8px;
+    padding-inline: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.08s;
+
+    &:hover {
+        background-color: var(--c-row-hover);
+    }
+
+    &:has(.carbon-linkrow-target:focus-visible) {
+        background-color: var(--c-row-hover);
+        box-shadow: inset 0 0 0 1px var(--c-accent);
+    }
+
+    .carbon-linkrow-target {
+        position: static;
+
+        &::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 8px;
+        }
+
+        &:focus-visible {
+            outline: none;
+        }
+    }
+
+    // Other controls in the row stay clickable above the row link
+    button:not(.carbon-linkrow-target),
+    a:not(.carbon-linkrow-target),
+    .dropdown {
+        position: relative;
+        z-index: 1;
+    }
+}

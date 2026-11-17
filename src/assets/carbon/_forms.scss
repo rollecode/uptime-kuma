@@ -1,0 +1,371 @@
+// Carbon controls: one 32px height, quiet chevrons, no coloured buttons outside confirms
+
+.carbon {
+    --c-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236e6e74' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m4 6 4 4 4-4'/%3e%3c/svg%3e");
+
+    accent-color: var(--c-accent);
+
+    // Checkboxes, radios and switches: violet when on (green means up)
+    .form-check-input {
+        width: 16px;
+        height: 16px;
+        border: 1px solid #3a3a40;
+        background-color: transparent;
+        box-shadow: none;
+
+        &[type="checkbox"]:not([role="switch"]) {
+            border-radius: 4px;
+        }
+
+        &:checked {
+            border-color: var(--c-accent);
+            background-color: var(--c-accent);
+        }
+
+        &:focus {
+            box-shadow: none;
+        }
+
+        &:focus-visible {
+            outline: 2px solid color-mix(in srgb, var(--c-fg) 30%, transparent);
+            outline-offset: 2px;
+        }
+    }
+
+    .form-switch .form-check-input {
+        width: 28px;
+        border-radius: var(--c-radius);
+    }
+
+    // Box and label on one line: 16px box centred on the first 20px text line, 8px gap
+    .form-check {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        min-height: 20px;
+        padding-left: 0;
+
+        .form-check-input {
+            float: none;
+            flex: none;
+            margin: 2px 0 0;
+        }
+
+        .form-check-label {
+            line-height: 20px;
+        }
+    }
+
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    th {
+        font-weight: 500;
+    }
+
+    .form-label {
+        margin-bottom: 6px;
+        font-weight: 400;
+        color: var(--c-fg);
+    }
+
+    code,
+    mark {
+        padding: 0 4px;
+        border-radius: 4px;
+        background-color: var(--c-fill);
+        color: inherit;
+    }
+
+    .form-text {
+        font-size: 12px;
+        color: var(--c-muted);
+    }
+
+    // Nothing reserves space for text that is not there
+    .form-text:empty {
+        display: none;
+    }
+
+    .form-control:not(textarea),
+    .form-select,
+    select {
+        height: 32px;
+        padding-top: 0;
+        padding-bottom: 0;
+        padding-left: 12px;
+        border-radius: var(--c-radius);
+    }
+
+    textarea.form-control {
+        border-radius: 12px;
+    }
+
+    input[type="number"].form-control {
+        max-width: 120px;
+    }
+
+    .settings-content .form-control:not([type="number"]),
+    .settings-content .form-select,
+    .settings-content .input-group {
+        max-width: 480px;
+    }
+
+    // A field with an icon button inside it (show/hide, copy, add)
+    .input-group:has(> .btn > svg:only-child) {
+        flex-wrap: nowrap;
+        align-items: center;
+        border: 1px solid var(--c-line-strong);
+        border-radius: var(--c-radius);
+        background-color: var(--c-field);
+
+        > .form-control {
+            border: 0;
+            background: transparent;
+            box-shadow: none;
+            height: 30px;
+        }
+
+        > .btn:has(> svg:only-child) {
+            flex: 0 0 28px;
+            justify-content: center;
+            width: 28px;
+            min-height: 28px;
+            height: 28px;
+            margin-right: 6px;
+            padding: 0;
+            border: 0;
+            border-radius: 50% !important;
+            background: none;
+            color: var(--c-muted);
+
+            &:hover {
+                color: var(--c-fg);
+                background-color: var(--c-fill);
+            }
+        }
+
+        &:focus-within {
+            border-color: #3a3a40;
+        }
+    }
+
+    .carbon-unit {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--c-fg-2);
+    }
+
+    .carbon-icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: none;
+        color: var(--c-muted);
+
+        &:hover {
+            color: var(--c-fg);
+            background-color: var(--c-fill);
+        }
+    }
+
+    .form-select,
+    select:not([multiple]):not(.form-control) {
+        appearance: none;
+        padding-right: 32px;
+        border: 1px solid var(--c-line-strong);
+        background-color: var(--c-field);
+        background-image: var(--c-chevron);
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 14px 14px;
+        color: var(--c-fg);
+    }
+
+    .input-group > .form-control,
+    .input-group > .btn {
+        height: 32px;
+    }
+
+    .input-group > .btn {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    // Neutral buttons: ink for the main action, grey for the rest
+    .btn-normal,
+    .btn-secondary,
+    .btn-light,
+    .btn-dark,
+    .btn-info,
+    .btn-success,
+    .btn-warning,
+    .btn-danger,
+    .btn-outline-normal,
+    .btn-outline-secondary,
+    .btn-outline-info,
+    .btn-outline-success,
+    .btn-outline-warning,
+    .btn-outline-danger,
+    .btn-outline-primary {
+        color: var(--c-fg);
+        background-color: var(--c-fill);
+        border-color: var(--c-fill);
+
+        &:hover,
+        &:focus,
+        &:active,
+        &.active {
+            color: var(--c-fg);
+            background-color: var(--c-line-strong);
+            border-color: var(--c-line-strong);
+        }
+    }
+
+    // One button shape: fixed height, label centred, 6px to a 14px icon
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        height: 32px;
+        padding: 0 12px;
+        line-height: 1;
+        font-weight: 500;
+        white-space: nowrap;
+
+        > svg {
+            width: 14px;
+            height: 14px;
+        }
+    }
+
+    .btn-sm {
+        height: 28px;
+        padding: 0 10px;
+    }
+
+    // Radio buttons drawn as a segmented control
+    .btn-group:has(> .btn-check) {
+        gap: 2px;
+        padding: 2px;
+        border-radius: 8px;
+        background-color: var(--c-field);
+
+        > .btn {
+            min-height: 26px;
+            padding: 2px 12px;
+            border: 0;
+            border-radius: 6px !important;
+            background: none;
+            color: var(--c-muted);
+            font-size: 12px;
+        }
+
+        > .btn-check:checked + .btn {
+            color: var(--c-fg);
+            background-color: var(--c-fill);
+        }
+    }
+
+    // Red only where something is about to be deleted
+    .modal .btn-danger {
+        color: #000;
+        background-color: var(--c-down);
+        border-color: var(--c-down);
+    }
+
+    .modal-title {
+        font-size: 16px;
+        font-weight: 500;
+    }
+
+    .badge.bg-primary.ms-2,
+    .carbon-tag {
+        display: inline-flex;
+        align-items: center;
+        height: 20px;
+        padding: 0 8px;
+        border-radius: var(--c-radius);
+        background-color: var(--c-fill) !important;
+        color: var(--c-fg-2);
+        font-size: 11px;
+        font-weight: 400;
+    }
+
+    // Tags: a dot in the tag's colour, outline and grey text
+    .tag-wrapper {
+        align-items: center;
+        gap: 5px;
+        min-height: 18px;
+        padding: 0 6px !important;
+        border: 1px solid var(--c-line-strong);
+        border-radius: 4px !important;
+        background-color: transparent !important;
+        color: var(--c-muted) !important;
+        opacity: 1;
+        font-size: 11px !important;
+        line-height: 16px;
+
+        &::before {
+            content: "";
+            flex: none;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--tag);
+        }
+
+        .btn-remove {
+            line-height: inherit;
+        }
+    }
+
+    .multiselect__tags .multiselect__tag {
+        background: var(--c-fill);
+        color: var(--c-fg);
+    }
+
+    .multiselect__tag-icon::after {
+        color: var(--c-muted);
+    }
+
+    .list-group-item {
+        border-color: var(--c-line);
+        background-color: transparent;
+    }
+
+    h5.settings-subheading::after {
+        display: none;
+    }
+
+    .shadow-box {
+        padding: 0;
+        background-color: transparent !important;
+        box-shadow: none;
+    }
+
+    .fixed-bottom-bar {
+        margin-left: 0;
+        margin-right: 0;
+        padding: 12px 0;
+        background-color: var(--c-bg);
+        backdrop-filter: none;
+        border-top: 1px solid var(--c-rule);
+        border-radius: 0;
+    }
+}
+
+.carbon.dark {
+    --c-chevron: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%238f8f95' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m4 6 4 4 4-4'/%3e%3c/svg%3e");
+
+    color-scheme: dark;
+}

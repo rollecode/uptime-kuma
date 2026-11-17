@@ -1,30 +1,23 @@
 <template>
-    <div>
-        <div class="period-options">
-            <button
-                type="button"
-                class="btn btn-light dropdown-toggle btn-period-toggle"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-            >
-                {{ chartPeriodOptions[chartPeriodHrs] }}&nbsp;
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li v-for="(item, key) in chartPeriodOptions" :key="key">
-                    <button
-                        type="button"
-                        class="dropdown-item"
-                        :class="{ active: chartPeriodHrs == key }"
-                        @click="chartPeriodHrs = key"
-                    >
-                        {{ item }}
-                    </button>
-                </li>
-            </ul>
+    <div class="carbon-chart">
+        <div class="carbon-section-head">
+            <h2>{{ $t("Response times") }}</h2>
+            <div class="carbon-seg" role="group" :aria-label="$t('Time period')">
+                <button
+                    v-for="(label, key) in chartPeriodOptions"
+                    :key="key"
+                    type="button"
+                    :class="{ 'is-on': chartPeriodHrs === key }"
+                    @click="chartPeriodHrs = key"
+                >
+                    {{ label }}
+                </button>
+            </div>
         </div>
-        <div class="chart-wrapper" :class="{ loading: loading }">
+        <div v-if="hasData || loading" class="chart-wrapper" :class="{ loading: loading }">
             <Line :data="chartData" :options="chartOptions" />
         </div>
+        <p v-else class="carbon-muted">{{ $t("noChartData") }}</p>
     </div>
 </template>
 
@@ -44,7 +37,6 @@ import {
 } from "chart.js";
 import "chartjs-adapter-dayjs-4";
 import { Line } from "vue-chartjs";
-import { UP, DOWN, PENDING, MAINTENANCE } from "../util.ts";
 
 Chart.register(
     LineController,
@@ -77,149 +69,108 @@ export default {
             chartPeriodHrs: "0",
 
             chartPeriodOptions: {
-                0: this.$t("recent"),
-                3: "3h",
-                6: "6h",
-                24: "24h",
-                168: "1w",
+                1: this.$t("Hour"),
+                24: this.$t("Day"),
+                168: this.$t("Week"),
+                720: this.$t("Month"),
             },
 
             chartRawData: null,
+            rangeEnd: Date.now(),
             chartDataFetchInterval: null,
         };
     },
     computed: {
+        /**
+         * Theme colours for the chart, read from the Carbon tokens
+         * @returns {object} Colours
+         */
+        colors() {
+            // Recompute when the theme changes
+            this.$root.theme;
+            const el = document.querySelector(".carbon") ?? document.body;
+            const style = getComputedStyle(el);
+            const token = (name, fallback) => style.getPropertyValue(name).trim() || fallback;
+            return {
+                line: token("--c-data", "#8b8cf8"),
+                grid: token("--c-line", "rgba(127,127,127,0.15)"),
+                tick: token("--c-tick", "#7c7c82"),
+                fg: token("--c-fg", "#ededed"),
+                surface: token("--c-field", "#0d0d0f"),
+                border: token("--c-line-strong", "#1f1f23"),
+                down: token("--c-down", "#ff7369"),
+                pending: token("--c-pending", "#f5b54a"),
+                maintenance: token("--c-maintenance", "#5b8def"),
+            };
+        },
+
+        hasData() {
+            return this.chartData.datasets[0].data.some((point) => point.y != null);
+        },
+
         chartOptions() {
+            const c = this.colors;
+            const font = { family: "'Geist Variable', system-ui, sans-serif", size: 11 };
+            const hours = parseInt(this.chartPeriodHrs) || 24;
+            const end = this.rangeEnd;
             return {
                 responsive: true,
                 maintainAspectRatio: false,
-                onResize: (chart) => {
-                    chart.canvas.parentNode.style.position = "relative";
-                    if (screen.width < 576) {
-                        chart.canvas.parentNode.style.height = "275px";
-                    } else if (screen.width < 768) {
-                        chart.canvas.parentNode.style.height = "320px";
-                    } else if (screen.width < 992) {
-                        chart.canvas.parentNode.style.height = "300px";
-                    } else {
-                        chart.canvas.parentNode.style.height = "250px";
-                    }
-                },
-                layout: {
-                    padding: {
-                        left: 10,
-                        right: 30,
-                        top: 30,
-                        bottom: 10,
-                    },
-                },
-
+                animation: false,
+                transitions: { active: { animation: { duration: 0 } }, resize: { animation: { duration: 0 } } },
+                interaction: { mode: "index", intersect: false },
+                layout: { padding: { top: 8, right: 4 } },
                 elements: {
-                    point: {
-                        // Hide points on chart unless mouse-over
-                        radius: 0,
-                        hitRadius: 100,
-                    },
+                    point: { radius: 0, hoverRadius: 3, hitRadius: 8 },
                 },
                 scales: {
                     x: {
                         type: "time",
+                        // The whole period, from its start to now, whatever data there is
+                        min: end - hours * 3600 * 1000,
+                        max: end,
                         time: {
+                            unit: hours > 24 ? "day" : undefined,
                             minUnit: "minute",
                             round: "second",
-                            tooltipFormat: "YYYY-MM-DD HH:mm:ss",
-                            displayFormats: {
-                                minute: "HH:mm",
-                                hour: "MM-DD HH:mm",
-                            },
+                            tooltipFormat: "D.M. HH:mm",
+                            displayFormats: { minute: "HH:mm", hour: "HH:mm", day: "D.M." },
                         },
-                        ticks: {
-                            sampleSize: 3,
-                            maxRotation: 0,
-                            autoSkipPadding: 30,
-                            padding: 3,
-                        },
-                        grid: {
-                            color: this.$root.theme === "light" ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.1)",
-                            offset: false,
-                        },
+                        border: { display: false },
+                        grid: { display: false },
+                        ticks: { color: c.tick, font, maxRotation: 0, autoSkipPadding: 40 },
                     },
                     y: {
-                        title: {
-                            display: true,
-                            text: this.$t("respTime"),
-                        },
-                        offset: false,
-                        grid: {
-                            color: this.$root.theme === "light" ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.1)",
-                        },
+                        beginAtZero: true,
+                        border: { display: false },
+                        grid: { color: c.grid },
+                        ticks: { color: c.tick, font, maxTicksLimit: 5, callback: (value) => `${value} ms` },
                     },
-                    y1: {
-                        display: false,
-                        position: "right",
-                        grid: {
-                            drawOnChartArea: false,
-                        },
-                        min: 0,
-                        max: 1,
-                        offset: false,
-                    },
+                    // Down, pending and maintenance marks: a thin strip along the bottom
+                    y1: { display: false, min: 0, max: 16 },
                 },
-                bounds: "ticks",
                 plugins: {
+                    legend: { display: false },
                     tooltip: {
-                        mode: "nearest",
-                        intersect: false,
+                        backgroundColor: c.surface,
+                        borderColor: c.border,
+                        borderWidth: 1,
+                        titleColor: c.tick,
+                        bodyColor: c.fg,
+                        titleFont: font,
+                        bodyFont: { ...font, size: 12 },
                         padding: 10,
-                        backgroundColor: this.$root.theme === "light" ? "rgba(212,232,222,1.0)" : "rgba(32,42,38,1.0)",
-                        bodyColor: this.$root.theme === "light" ? "rgba(12,12,18,1.0)" : "rgba(220,220,220,1.0)",
-                        titleColor: this.$root.theme === "light" ? "rgba(12,12,18,1.0)" : "rgba(220,220,220,1.0)",
-                        // No longer rely solely on datasetIndex === 0; we want to hide tooltips only for the bars
-                        filter: function (tooltipItem) {
-                            const ds = tooltipItem?.chart?.data?.datasets?.[tooltipItem.datasetIndex];
-                            return ds && ds.type !== "bar";
-                        },
+                        displayColors: false,
+                        filter: (item) => item.dataset.type !== "bar",
                         callbacks: {
-                            label: (context) => {
-                                const label = context.dataset.label;
-                                return `${label} ${new Intl.NumberFormat().format(context.parsed.y)} ms`;
-                            },
-                        },
-                    },
-                    legend: {
-                        // Enable the legend and display only the non-bar datasets (the lines)
-                        display: true,
-                        position: "top",
-                        align: "start",
-                        // Indicates that the legend is clickable (cursor pointer)
-                        onHover: function (event, legendItem, legend) {
-                            if (legend && legend.chart && legend.chart.canvas) {
-                                legend.chart.canvas.style.cursor = "pointer";
-                            }
-                        },
-                        onLeave: function (event, legendItem, legend) {
-                            if (legend && legend.chart && legend.chart.canvas) {
-                                legend.chart.canvas.style.cursor = "";
-                            }
-                        },
-                        labels: {
-                            color: this.$root.theme === "light" ? "rgba(12,12,18,1.0)" : "rgba(220,220,220,1.0)",
-                            // Filter to display only the lines in the legend
-                            filter: function (legendItem, data) {
-                                const ds = data.datasets[legendItem.datasetIndex];
-                                return ds && ds.type !== "bar";
-                            },
+                            label: (context) => `${new Intl.NumberFormat().format(Math.round(context.parsed.y))} ms`,
                         },
                     },
                 },
             };
         },
         chartData() {
-            if (this.chartPeriodHrs === "0") {
-                return this.getChartDatapointsFromHeartbeatList();
-            } else {
-                return this.getChartDatapointsFromStats();
-            }
+            return this.getChartDatapointsFromStats();
         },
     },
     watch: {
@@ -230,56 +181,37 @@ export default {
                 this.chartDataFetchInterval = null;
             }
 
-            // eslint-disable-next-line eqeqeq
-            if (newPeriod == "0") {
-                this.heartbeatList = null;
-                this.$root.storage()["chart-period"] = newPeriod;
-            } else {
-                this.loading = true;
+            this.loading = true;
 
-                let period;
-                try {
-                    period = parseInt(newPeriod);
-                } catch (e) {
-                    // Invalid period
-                    period = 24;
+            const period = parseInt(newPeriod) || 24;
+
+            this.$root.getMonitorChartData(this.monitorId, period, (res) => {
+                if (!res.ok) {
+                    this.$root.toastError(res.msg);
+                } else {
+                    this.chartRawData = res.data;
+                    this.rangeEnd = Date.now();
+                    this.$root.storage()["chart-period"] = newPeriod;
                 }
+                this.loading = false;
+            });
 
+            // Hour view is minute data, so it is worth refreshing more often
+            const refresh = period <= 1 ? 60 * 1000 : 5 * 60 * 1000;
+            this.chartDataFetchInterval = setInterval(() => {
                 this.$root.getMonitorChartData(this.monitorId, period, (res) => {
-                    if (!res.ok) {
-                        this.$root.toastError(res.msg);
-                    } else {
+                    if (res.ok) {
                         this.chartRawData = res.data;
-                        this.$root.storage()["chart-period"] = newPeriod;
+                        this.rangeEnd = Date.now();
                     }
-                    this.loading = false;
                 });
-
-                this.chartDataFetchInterval = setInterval(
-                    () => {
-                        this.$root.getMonitorChartData(this.monitorId, period, (res) => {
-                            if (res.ok) {
-                                this.chartRawData = res.data;
-                            }
-                        });
-                    },
-                    5 * 60 * 1000
-                );
-            }
+            }, refresh);
         },
     },
     created() {
         // Load chart period from storage if saved
-        let period = this.$root.storage()["chart-period"];
-        if (period != null) {
-            // Has this ever been not a string?
-            if (typeof period !== "string") {
-                period = period.toString();
-            }
-            this.chartPeriodHrs = period;
-        } else {
-            this.chartPeriodHrs = "0";
-        }
+        const period = String(this.$root.storage()["chart-period"] ?? "24");
+        this.chartPeriodHrs = period in this.chartPeriodOptions ? period : "24";
     },
     beforeUnmount() {
         if (this.chartDataFetchInterval) {
@@ -290,18 +222,13 @@ export default {
         // Get color of bar chart for this datapoint
         getBarColorForDatapoint(datapoint) {
             if (datapoint.maintenance != null) {
-                // Target is in maintenance
-                return "rgba(23,71,245,0.41)";
+                return this.colors.maintenance;
             } else if (datapoint.down === 0) {
-                // Target is up, no need to display a bar
-                return "#000";
+                return "transparent";
             } else if (datapoint.up === 0) {
-                // Target is down
-                return "rgba(220, 53, 69, 0.41)";
-            } else {
-                // Show yellow for mixed status
-                return "rgba(245, 182, 23, 0.41)";
+                return this.colors.down;
             }
+            return this.colors.pending;
         },
         // push datapoint to chartData
         pushDatapoint(datapoint, avgPingData, minPingData, maxPingData, downData, colorData) {
@@ -322,7 +249,7 @@ export default {
             });
             downData.push({
                 x,
-                y: datapoint.down + (datapoint.maintenance || 0),
+                y: datapoint.down + (datapoint.maintenance || 0) > 0 ? 1 : null,
             });
 
             colorData.push(this.getBarColorForDatapoint(datapoint));
@@ -347,95 +274,6 @@ export default {
                 avgPing: totalUp > 0 ? totalPing / totalUp : 0,
                 minPing,
                 maxPing,
-            };
-        },
-        getChartDatapointsFromHeartbeatList() {
-            // Render chart using heartbeatList
-            let lastHeartbeatTime;
-            const monitorInterval = this.$root.monitorList[this.monitorId]?.interval;
-            let pingData = []; // Ping Data for Line Chart, y-axis contains ping time
-            let downData = []; // Down Data for Bar Chart, y-axis is 1 if target is down (red color), under maintenance (blue color) or pending (orange color), 0 if target is up
-            let colorData = []; // Color Data for Bar Chart
-
-            let heartbeatList =
-                (this.monitorId in this.$root.heartbeatList && this.$root.heartbeatList[this.monitorId]) || [];
-
-            for (const beat of heartbeatList) {
-                const beatTime = this.$root.toDayjs(beat.time);
-                const x = beatTime.format("YYYY-MM-DD HH:mm:ss");
-
-                // Insert empty datapoint to separate big gaps
-                if (lastHeartbeatTime && monitorInterval) {
-                    const diff = Math.abs(beatTime.diff(lastHeartbeatTime));
-                    if (diff > monitorInterval * 1000 * 10) {
-                        // Big gap detected
-                        const gapX = [
-                            lastHeartbeatTime.add(monitorInterval, "second").format("YYYY-MM-DD HH:mm:ss"),
-                            beatTime.subtract(monitorInterval, "second").format("YYYY-MM-DD HH:mm:ss"),
-                        ];
-
-                        for (const x of gapX) {
-                            pingData.push({
-                                x,
-                                y: null,
-                            });
-                            downData.push({
-                                x,
-                                y: null,
-                            });
-                            colorData.push("#000");
-                        }
-                    }
-                }
-
-                pingData.push({
-                    x,
-                    y: beat.status === UP ? beat.ping : null,
-                });
-                downData.push({
-                    x,
-                    y: beat.status === DOWN || beat.status === MAINTENANCE || beat.status === PENDING ? 1 : 0,
-                });
-                switch (beat.status) {
-                    case MAINTENANCE:
-                        colorData.push("rgba(23 ,71, 245, 0.41)");
-                        break;
-                    case PENDING:
-                        colorData.push("rgba(245, 182, 23, 0.41)");
-                        break;
-                    default:
-                        colorData.push("rgba(220, 53, 69, 0.41)");
-                }
-
-                lastHeartbeatTime = beatTime;
-            }
-
-            return {
-                datasets: [
-                    {
-                        // Line Chart
-                        data: pingData,
-                        fill: "origin",
-                        tension: 0.2,
-                        borderColor: "#4ABF74",
-                        backgroundColor: "#4ABF7438",
-                        yAxisID: "y",
-                        label: this.$t("avgPing"),
-                    },
-                    {
-                        // Bar Chart
-                        type: "bar",
-                        data: downData,
-                        borderColor: "#00000000",
-                        backgroundColor: colorData,
-                        yAxisID: "y1",
-                        barThickness: "flex",
-                        barPercentage: 1,
-                        categoryPercentage: 1,
-                        inflateAmount: 0.05,
-                        label: "status",
-                    },
-                ],
             };
         },
         getChartDatapointsFromStats() {
@@ -543,46 +381,25 @@ export default {
             return {
                 datasets: [
                     {
-                        // minimum ping chart
-                        data: minPingData,
-                        fill: "origin",
-                        tension: 0.2,
-                        borderColor: "#126331",
-                        backgroundColor: "#2F9C5914",
-                        yAxisID: "y",
-                        label: this.$t("minPing"),
-                    },
-                    {
-                        // average ping chart
                         data: avgPingData,
                         fill: "origin",
-                        tension: 0.2,
-                        borderColor: "#5CDD8B",
-                        backgroundColor: "#5CDD8B06",
+                        tension: 0,
+                        borderWidth: 1.5,
+                        borderColor: this.colors.line,
+                        // Hex colour plus 15% alpha
+                        backgroundColor: `${this.colors.line}26`,
                         yAxisID: "y",
                         label: this.$t("avgPing"),
                     },
                     {
-                        // maximum ping chart
-                        data: maxPingData,
-                        fill: "origin",
-                        tension: 0.2,
-                        borderColor: "#21b55a",
-                        backgroundColor: "#1E7A4214",
-                        yAxisID: "y",
-                        label: this.$t("maxPing"),
-                    },
-                    {
-                        // Bar Chart
                         type: "bar",
                         data: downData,
-                        borderColor: "#00000000",
+                        borderColor: "transparent",
                         backgroundColor: colorData,
                         yAxisID: "y1",
                         barThickness: "flex",
                         barPercentage: 1,
                         categoryPercentage: 1,
-                        inflateAmount: 0.05,
                         label: "status",
                     },
                 ],
@@ -593,73 +410,12 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "../assets/vars.scss";
-
-.form-select {
-    width: unset;
-    display: inline-flex;
-}
-
-.period-options {
-    padding: 0.1em 1em;
-    margin-bottom: -1.2em;
-    float: right;
-    position: relative;
-    z-index: 10;
-
-    .dropdown-menu {
-        padding: 0;
-        min-width: 50px;
-        font-size: 0.9em;
-
-        .dark & {
-            background: $dark-bg;
-        }
-
-        .dropdown-item {
-            border-radius: 0.3rem;
-            padding: 2px 16px 4px;
-
-            .dark & {
-                background: $dark-bg;
-                color: $dark-font-color;
-            }
-
-            .dark &:hover {
-                background: $dark-font-color;
-                color: $dark-font-color2;
-            }
-        }
-
-        .dark & .dropdown-item.active {
-            background: $primary;
-            color: $dark-font-color2;
-        }
-    }
-
-    .btn-period-toggle {
-        padding: 2px 15px;
-        background: transparent;
-        border: 0;
-        color: $link-color;
-        opacity: 0.7;
-        font-size: 0.9em;
-
-        &::after {
-            vertical-align: 0.155em;
-        }
-
-        .dark & {
-            color: $dark-font-color;
-        }
-    }
-}
-
 .chart-wrapper {
-    margin-bottom: 0.5em;
+    position: relative;
+    height: 220px;
 
     &.loading {
-        filter: blur(10px);
+        opacity: 0.4;
     }
 }
 </style>

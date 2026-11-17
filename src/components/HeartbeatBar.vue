@@ -76,6 +76,7 @@ export default {
             beatHeight: 30,
             hoverScale: 1.5,
             beatHoverAreaPadding: 4,
+            beatRadius: null,
             move: false,
             maxBeat: -1,
             // Tooltip data
@@ -346,7 +347,14 @@ export default {
     },
 
     mounted() {
-        if (this.size !== "big") {
+        if (this.size === "small") {
+            // Thin square-cornered bars for the monitor list rows
+            this.beatWidth = 4;
+            this.beatHeight = 20;
+            this.beatHoverAreaPadding = 1;
+            this.beatRadius = 1;
+            this.hoverScale = 1;
+        } else if (this.size !== "big") {
             this.beatWidth = 5;
             this.beatHeight = 16;
             this.beatHoverAreaPadding = 2;
@@ -604,12 +612,14 @@ export default {
             // Cache CSS colors once per redraw
             const rootStyles = getComputedStyle(document.documentElement);
             const canvasStyles = getComputedStyle(canvas.parentElement);
+            // A theme can set --beat-up, --beat-down and so on around the bar
+            const themed = (name, fallback) => canvasStyles.getPropertyValue(`--beat-${name}`).trim() || fallback;
             const colors = {
-                empty: canvasStyles.getPropertyValue("--beat-empty-color") || "#f0f8ff",
-                down: rootStyles.getPropertyValue("--bs-danger") || "#dc3545",
-                pending: rootStyles.getPropertyValue("--bs-warning") || "#ffc107",
-                maintenance: rootStyles.getPropertyValue("--maintenance") || "#1d4ed8",
-                up: rootStyles.getPropertyValue("--bs-primary") || "#5cdd8b",
+                empty: themed("empty", canvasStyles.getPropertyValue("--beat-empty-color") || "#f0f8ff"),
+                down: themed("down", rootStyles.getPropertyValue("--bs-danger") || "#dc3545"),
+                pending: themed("pending", rootStyles.getPropertyValue("--bs-warning") || "#ffc107"),
+                maintenance: themed("maintenance", rootStyles.getPropertyValue("--maintenance") || "#1d4ed8"),
+                up: themed("up", rootStyles.getPropertyValue("--bs-primary") || "#5cdd8b"),
             };
 
             // Draw each beat
@@ -631,7 +641,7 @@ export default {
                 }
 
                 // Calculate border radius based on current width (pill shape = half of width)
-                const borderRadius = width / 2;
+                const borderRadius = this.beatRadius ?? width / 2;
 
                 // Get color based on beat status
                 let color = this.getBeatColor(beat, colors);

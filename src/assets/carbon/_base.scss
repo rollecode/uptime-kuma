@@ -1,0 +1,220 @@
+// Carbon base: type, ground and the Bootstrap pieces every page uses
+
+body.dark:has(.carbon) {
+    background-color: #000;
+}
+
+.carbon {
+    // 100vh on iOS Safari counts the hidden toolbar and overflows
+    min-height: 100dvh;
+    background-color: var(--c-bg);
+    color: var(--c-fg);
+    font-family: "Geist Variable", "Twemoji Country Flags", system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 20px;
+    font-variant-numeric: tabular-nums;
+
+    h1 {
+        font-size: 20px;
+        line-height: 28px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+    }
+
+    h2 {
+        font-size: 16px;
+        line-height: 24px;
+    }
+
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-size: 14px;
+        line-height: 20px;
+    }
+
+    .form-control,
+    .form-select,
+    .input-group-text,
+    .btn,
+    .dropdown-item,
+    .dropdown-item-text {
+        font-size: 13px;
+    }
+
+    .btn {
+        border-radius: var(--c-radius);
+    }
+
+    .btn-primary,
+    .btn-primary:hover,
+    .btn-primary:focus,
+    .btn-primary:active,
+    .btn-primary.active,
+    .btn-primary:disabled {
+        color: var(--c-button-fg);
+        background-color: var(--c-button);
+        border-color: var(--c-button);
+    }
+
+    .btn-primary:hover {
+        opacity: 0.88;
+    }
+
+    .btn-outline-primary {
+        color: var(--c-fg);
+        border-color: var(--c-line-strong);
+
+        &:hover,
+        &:active {
+            color: var(--c-fg);
+            background-color: var(--c-fill);
+            border-color: var(--c-line-strong);
+        }
+    }
+
+    .shadow-box {
+        border-radius: 12px;
+    }
+
+    // One monospace for code, URLs, tokens and IDs, from the viewer's machine
+    code,
+    pre,
+    kbd,
+    samp,
+    .carbon-mono,
+    .prism-editor__textarea,
+    .prism-editor__container pre {
+        font-family: var(--c-mono);
+        font-size: 12px;
+        font-variant-ligatures: contextual common-ligatures;
+        font-feature-settings:
+            "calt" 1,
+            "liga" 1;
+    }
+
+    p,
+    .form-text {
+        text-wrap: pretty;
+    }
+
+    // A quiet ring for keyboard focus only, instead of the browser and Bootstrap blue
+    :focus {
+        outline: none;
+    }
+
+    :focus-visible {
+        outline: 2px solid color-mix(in srgb, var(--c-fg) 35%, transparent);
+        outline-offset: 2px;
+    }
+
+    .btn:focus,
+    .btn-check:focus + .btn,
+    .form-control:focus,
+    .form-select:focus,
+    .page-link:focus {
+        box-shadow: none;
+    }
+
+    // Links are ink or grey; no underlines
+    a:not(.btn) {
+        text-decoration: none;
+    }
+
+    .nav-pills .nav-link.active,
+    .nav-pills .show > .nav-link,
+    .page-item.active .page-link {
+        color: var(--c-fg);
+        background-color: var(--c-fill);
+        border-color: var(--c-line-strong);
+    }
+
+    .dropdown-menu {
+        border-radius: 12px;
+        border-color: var(--c-line-strong);
+        padding: 4px;
+    }
+
+    .dropdown-item {
+        border-radius: 8px;
+    }
+
+    .dropdown-item.active,
+    .dropdown-item:active {
+        color: var(--c-fg);
+        background-color: var(--c-fill);
+    }
+
+    .modal-content {
+        border-radius: 12px;
+    }
+}
+
+.carbon.dark {
+    background-color: var(--c-bg);
+
+    .shadow-box {
+        box-shadow: none;
+    }
+
+    .modal-content {
+        border: 1px solid var(--c-line-strong);
+    }
+
+    .form-control,
+    .form-select {
+        border-color: var(--c-line-strong);
+
+        &:focus {
+            border-color: #3a3a40;
+            box-shadow: none;
+        }
+
+        &::placeholder {
+            color: var(--c-faint);
+        }
+    }
+
+    .form-control:disabled,
+    .form-control[readonly],
+    .input-group-text,
+    .form-switch .form-check-input:not(:checked) {
+        background-color: var(--c-fill);
+        border-color: var(--c-line-strong);
+    }
+
+    .dropdown-menu {
+        color: var(--c-fg);
+        background-color: var(--c-field);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    }
+
+    .dropdown-item {
+        color: var(--c-fg);
+
+        &:hover,
+        &:focus {
+            color: var(--c-fg);
+            background-color: var(--c-fill);
+        }
+    }
+
+    .dropdown-divider {
+        border-color: var(--c-line-strong);
+    }
+
+    .table {
+        --bs-table-hover-bg: var(--c-hover);
+
+        color: var(--c-fg);
+        border-color: var(--c-line);
+    }
+}
+
+// iOS Safari zooms in on any field whose text is under 16px
+@media (pointer: coarse) {
+    .carbon :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"]), select, textarea) {
+        font-size: 16px !important;
+    }
+}

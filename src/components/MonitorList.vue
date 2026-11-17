@@ -1,123 +1,148 @@
 <template>
-    <div class="shadow-box mb-3 p-0" :style="boxStyle">
-        <div class="list-header">
-            <!-- Line 1: Checkbox + Status + Tags + Search Bar -->
-            <div class="filter-row">
-                <div class="search-wrapper">
-                    <a v-if="searchText != ''" class="search-icon" @click="clearSearchText">
-                        <font-awesome-icon icon="times" />
-                    </a>
-                    <form @submit.prevent>
-                        <input
-                            v-model="searchText"
-                            class="form-control search-input"
-                            data-testid="monitor-search"
-                            :placeholder="$t('Search...')"
-                            :aria-label="$t('Search monitored sites')"
-                            autocomplete="off"
-                        />
-                    </form>
-                </div>
-
-                <div class="filters-group">
-                    <input
-                        v-if="!selectMode"
-                        v-model="selectMode"
-                        class="form-check-input"
-                        data-testid="select-mode-toggle"
-                        type="checkbox"
-                        :aria-label="$t('selectAllMonitorsAria')"
-                        @change="selectAll = selectMode"
-                    />
-                    <input
-                        v-else
-                        v-model="selectAll"
-                        class="form-check-input"
-                        data-testid="select-all-toggle"
-                        type="checkbox"
-                        :aria-label="selectAll ? $t('deselectAllMonitorsAria') : $t('selectAllMonitorsAria')"
-                    />
-
-                    <MonitorListFilter
-                        :filterState="filterState"
-                        :allCollapsed="allGroupsCollapsed"
-                        :hasGroups="groupMonitors.length >= 2"
-                        @update-filter="updateFilter"
-                        @toggle-collapse-all="toggleCollapseAll"
-                    />
-                </div>
+    <div class="carbon-monitors">
+        <div class="carbon-top">
+            <div class="carbon-title">
+                <h1>{{ $t("navMonitors") }}</h1>
+                <StatusFinding />
             </div>
-
-            <!-- Line 2: Cancel + Actions (shown when selection mode is active) -->
-            <div v-if="selectMode && selectedMonitorCount > 0" class="selection-row">
-                <button class="btn btn-outline-normal" @click="cancelSelectMode">
-                    {{ $t("Cancel") }}
-                </button>
-                <div class="actions-wrapper">
-                    <div class="dropdown">
-                        <button
-                            class="btn btn-outline-normal dropdown-toggle"
-                            type="button"
-                            data-testid="bulk-actions"
-                            data-bs-toggle="dropdown"
-                            :aria-label="$t('Actions')"
-                            :disabled="bulkActionInProgress"
-                            aria-expanded="false"
-                        >
-                            {{ $t("Actions") }}
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li>
-                                <a class="dropdown-item" href="#" data-testid="bulk-pause" @click.prevent="pauseDialog">
-                                    <font-awesome-icon icon="pause" class="me-2" />
-                                    {{ $t("Pause") }}
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    class="dropdown-item"
-                                    href="#"
-                                    data-testid="bulk-resume"
-                                    @click.prevent="resumeSelected"
-                                >
-                                    <font-awesome-icon icon="play" class="me-2" />
-                                    {{ $t("Resume") }}
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    class="dropdown-item text-danger"
-                                    data-testid="bulk-delete"
-                                    href="#"
-                                    @click.prevent="$refs.confirmDelete.show()"
-                                >
-                                    <font-awesome-icon icon="trash" class="me-2" />
-                                    {{ $t("Delete") }}
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                <span class="selected-count">
-                    {{ $t("selectedMonitorCountMsg", selectedMonitorCount) }}
-                </span>
+            <div class="carbon-tools">
+                <form class="carbon-search" role="search" @submit.prevent>
+                    <svg
+                        aria-hidden="true"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="11" cy="11" r="7" />
+                        <path d="m20 20-3.5-3.5" />
+                    </svg>
+                    <input
+                        v-model="searchText"
+                        class="search-input"
+                        data-testid="monitor-search"
+                        :placeholder="$t('Search...')"
+                        :aria-label="$t('Search monitored sites')"
+                        autocomplete="off"
+                    />
+                    <button
+                        v-if="searchText != ''"
+                        type="button"
+                        class="search-icon"
+                        :aria-label="$t('Clear')"
+                        @click="clearSearchText"
+                    >
+                        <font-awesome-icon icon="times" />
+                    </button>
+                </form>
+                <router-link to="/add" class="btn btn-primary">{{ $t("newMonitor") }}</router-link>
             </div>
         </div>
-        <div
-            ref="monitorList"
-            class="monitor-list px-2"
-            :class="{ scrollbar: scrollbar }"
-            :style="monitorListStyle"
-            data-testid="monitor-list"
-            @scroll.passive="onListScroll"
-        >
+
+        <div v-if="!selectMode" class="carbon-tabs">
+            <button
+                v-for="t in tabs"
+                :key="t.key"
+                type="button"
+                class="carbon-tab"
+                :class="{ 'is-on': tab === t.key }"
+                :aria-pressed="tab === t.key"
+                @click="tab = t.key"
+            >
+                {{ t.label }}
+                <span>{{ t.count }}</span>
+            </button>
+
+            <span v-for="chip in filterChips" :key="chip.key" class="carbon-chip carbon-filter-chip">
+                {{ chip.label }}
+                <button type="button" :aria-label="$t('Remove filter')" @click="clearFilter(chip.key)">×</button>
+            </span>
+
+            <div class="filters-group">
+                <button type="button" class="carbon-tool" data-testid="select-mode-toggle" @click="selectMode = true">
+                    {{ $t("Select") }}
+                </button>
+                <MonitorListFilter
+                    :filterState="filterState"
+                    :allCollapsed="allGroupsCollapsed"
+                    :hasGroups="groupMonitors.length >= 2"
+                    @update-filter="updateFilter"
+                    @toggle-collapse-all="toggleCollapseAll"
+                />
+            </div>
+        </div>
+
+        <!-- Select mode replaces the toolbar -->
+        <div v-else class="carbon-tabs carbon-selectbar">
+            <span class="count">{{ $t("selectedCount", [selectedMonitorCount]) }}</span>
+            <button type="button" class="carbon-tool" data-testid="select-all-toggle" @click="toggleSelectAll">
+                {{ selectAll ? $t("Deselect All") : $t("selectAllCount", [selectableMonitors.length]) }}
+            </button>
+            <template v-if="selectedMonitorCount > 0">
+                <button
+                    type="button"
+                    class="carbon-tool"
+                    data-testid="bulk-pause"
+                    :disabled="bulkActionInProgress"
+                    @click="pauseDialog"
+                >
+                    {{ $t("Pause") }}
+                </button>
+                <button
+                    type="button"
+                    class="carbon-tool"
+                    data-testid="bulk-resume"
+                    :disabled="bulkActionInProgress"
+                    @click="resumeSelected"
+                >
+                    {{ $t("Resume") }}
+                </button>
+                <button
+                    type="button"
+                    class="carbon-tool carbon-tool-danger"
+                    data-testid="bulk-delete"
+                    :disabled="bulkActionInProgress"
+                    @click="$refs.confirmDelete.show()"
+                >
+                    {{ $t("Delete") }}
+                </button>
+            </template>
+            <button type="button" class="carbon-quiet ms-auto" @click="cancelSelectMode">{{ $t("Cancel") }}</button>
+        </div>
+
+        <div ref="monitorList" class="monitor-list" data-testid="monitor-list">
             <div v-if="!$root.monitorListLoaded" class="list-loading" aria-busy="true">
                 <div v-for="i in 8" :key="i" class="skeleton-row"></div>
             </div>
-            <div v-else-if="Object.keys($root.monitorList).length === 0" class="text-center mt-3">
-                {{ $t("No Monitors, please") }}
-                <router-link to="/add">{{ $t("add one") }}</router-link>
-            </div>
+            <EmptyState
+                v-else-if="Object.keys($root.monitorList).length === 0"
+                illustration="clockwork"
+                :title="$t('No monitors yet')"
+                class="mt-4"
+            >
+                {{ $t("noMonitorsHelp") }}
+                <template #action>
+                    <router-link to="/add" class="btn btn-normal">{{ $t("newMonitor") }}</router-link>
+                </template>
+            </EmptyState>
+            <EmptyState
+                v-else-if="sortedMonitorList.length === 0 && searchText !== ''"
+                illustration="telescope"
+                :title="$t('noSearchResults', [searchText])"
+                class="mt-4"
+            >
+                {{ $t("noSearchResultsHelp") }}
+            </EmptyState>
+            <EmptyState
+                v-else-if="sortedMonitorList.length === 0"
+                illustration="anchor"
+                :title="$t('Nothing here')"
+                class="mt-4"
+            >
+                {{ $t("emptyTabHelp") }}
+            </EmptyState>
 
             <div :style="{ height: renderedRows.top + 'px' }"></div>
             <MonitorListItem
@@ -130,6 +155,7 @@
                 :isSelected="isSelected"
                 :select="select"
                 :deselect="deselect"
+                :pause="pauseOne"
                 :filter-func="filterFunc"
                 :sort-func="sortFunc"
             />
@@ -137,7 +163,7 @@
         </div>
     </div>
 
-    <Confirm ref="confirmPause" :yes-text="$t('Yes')" :no-text="$t('No')" @yes="pauseSelected">
+    <Confirm ref="confirmPause" :yes-text="$t('Yes')" :no-text="$t('No')" @yes="onPauseConfirmed">
         {{ $t("pauseMonitorMsg") }}
     </Confirm>
 
@@ -150,29 +176,28 @@
 import Confirm from "../components/Confirm.vue";
 import MonitorListItem from "../components/MonitorListItem.vue";
 import MonitorListFilter from "./MonitorListFilter.vue";
-import { getMonitorRelativeURL } from "../util.ts";
+import StatusFinding from "./StatusFinding.vue";
+import EmptyState from "./EmptyState.vue";
 import { computeListWindow, computeRowMetrics } from "../monitor-list-window";
+import { getMonitorRelativeURL, DOWN } from "../util.ts";
 
 export default {
     components: {
         Confirm,
         MonitorListItem,
         MonitorListFilter,
-    },
-    props: {
-        /** Should the scrollbar be shown */
-        scrollbar: {
-            type: Boolean,
-        },
+        StatusFinding,
+        EmptyState,
     },
     data() {
         return {
             searchText: "",
+            tab: "all",
+            pauseId: null,
             selectMode: false,
             selectAll: false,
             disableSelectAllWatcher: false,
             selectedMonitors: {},
-            windowTop: 0,
             bulkActionInProgress: false,
             filterState: {
                 status: null,
@@ -231,24 +256,6 @@ export default {
         },
 
         /**
-         * Improve the sticky appearance of the list by increasing its
-         * height as user scrolls down.
-         * Not used on mobile.
-         * @returns {object} Style for monitor list
-         */
-        boxStyle() {
-            if (window.innerWidth > 550) {
-                return {
-                    height: `calc(100vh - 160px + ${this.windowTop}px)`,
-                };
-            } else {
-                return {
-                    height: "calc(100vh - 160px)",
-                };
-            }
-        },
-
-        /**
          * Returns a sorted list of monitors based on the applied filters and search text.
          * @returns {Array} The sorted list of monitors.
          */
@@ -257,28 +264,62 @@ export default {
 
             result = result.filter(this.filterFunc);
 
-            result.sort(this.sortFunc);
+            // Monitors outside any group first, then the groups
+            result.sort((m1, m2) => (m1.type === "group") - (m2.type === "group") || this.sortFunc(m1, m2));
 
             return result;
         },
 
-        isDarkTheme() {
-            return document.body.classList.contains("dark");
+        /**
+         * Tabs above the list, each with how many monitors it holds
+         * @returns {Array} Tab keys, labels and counts
+         */
+        tabs() {
+            const monitors = Object.values(this.$root.monitorList).filter((m) => m.type !== "group");
+            const summary = this.$root.checkSummary;
+            return [
+                { key: "all", label: this.$t("tabAll"), count: summary.total },
+                { key: "down", label: this.$t("Down"), count: summary.down },
+                { key: "push", label: this.$t("Heartbeats"), count: monitors.filter((m) => m.type === "push").length },
+                { key: "paused", label: this.$t("filterActivePaused"), count: summary.paused },
+            ];
         },
 
-        monitorListStyle() {
-            // The header height has to be changed in case it is modified in the future.
-            // +10px is the margin-bottom of the header
-            let listHeaderHeight = 58 + 10;
+        /**
+         * Monitors that "Select all" picks: every check shown, groups left out
+         * @returns {Array} Monitors
+         */
+        selectableMonitors() {
+            return Object.values(this.$root.monitorList).filter((m) => m.type !== "group" && this.filterFunc(m));
+        },
 
-            // Only add extra height when selection row is visible
-            if (this.selectMode && this.selectedMonitorCount > 0) {
-                listHeaderHeight += 42;
+        /**
+         * Active filters as removable chips, e.g. "Status: Down"
+         * @returns {Array<{key: string, label: string}>} Chips
+         */
+        filterChips() {
+            const chips = [];
+            const words = { 0: "Down", 1: "Up", 2: "Pending", 3: "statusMaintenance" };
+            const status = this.filterState.status ?? [];
+            if (status.length > 0) {
+                const value = status.length === 1 ? this.$t(words[status[0]]) : status.length;
+                chips.push({ key: "status", label: `${this.$t("Status")}: ${value}` });
             }
+            const active = this.filterState.active ?? [];
+            if (active.length > 0) {
+                const value =
+                    active.length === 1 ? this.$t(active[0] ? "Active" : "filterActivePaused") : active.length;
+                chips.push({ key: "active", label: `${this.$t("State")}: ${value}` });
+            }
+            const tags = this.filterState.tags ?? [];
+            if (tags.length > 0) {
+                chips.push({ key: "tags", label: `${this.$t("Tags")}: ${tags.length}` });
+            }
+            return chips;
+        },
 
-            return {
-                height: `calc(100% - ${listHeaderHeight}px)`,
-            };
+        isDarkTheme() {
+            return document.body.classList.contains("dark");
         },
 
         selectedMonitorCount() {
@@ -291,6 +332,7 @@ export default {
          */
         filtersActive() {
             return (
+                this.tab !== "all" ||
                 this.filterState.status != null ||
                 this.filterState.active != null ||
                 this.filterState.tags != null ||
@@ -317,16 +359,16 @@ export default {
         allGroupsCollapsed() {
             // collapseKey forces this computed to re-evaluate after localStorage updates
             if (this.collapseKey < 0 || this.groupMonitors.length === 0) {
-                return true;
+                return false;
             }
 
             const storage = window.localStorage.getItem("monitorCollapsed");
             if (storage === null) {
-                return true; // Default is collapsed
+                return false; // Default is expanded
             }
 
             const storageObject = JSON.parse(storage);
-            return this.groupMonitors.every((group) => storageObject[`monitor_${group.id}`] !== false);
+            return this.groupMonitors.every((group) => storageObject[`monitor_${group.id}`] === true);
         },
     },
     watch: {
@@ -346,12 +388,9 @@ export default {
                 this.selectedMonitors = {};
 
                 if (this.selectAll) {
-                    this.sortedMonitorList.forEach((item) => {
+                    this.selectableMonitors.forEach((item) => {
                         this.selectedMonitors[item.id] = true;
                     });
-                } else {
-                    // Exit select mode when unchecking "select all"
-                    this.selectMode = false;
                 }
             } else {
                 this.disableSelectAllWatcher = false;
@@ -368,7 +407,9 @@ export default {
         this.rowRefs = new Map();
     },
     mounted() {
-        window.addEventListener("scroll", this.onScroll);
+        this.$root.loadStatusSince();
+        window.addEventListener("keydown", this.onKeydown);
+        window.addEventListener("scroll", this.onListScroll, { passive: true });
         window.addEventListener("resize", this.onListScroll);
         this.onListScroll();
     },
@@ -376,7 +417,8 @@ export default {
         this.measureRows();
     },
     beforeUnmount() {
-        window.removeEventListener("scroll", this.onScroll);
+        window.removeEventListener("keydown", this.onKeydown);
+        window.removeEventListener("scroll", this.onListScroll);
         window.removeEventListener("resize", this.onListScroll);
     },
     methods: {
@@ -394,7 +436,7 @@ export default {
             }
         },
         /**
-         * Read the real height of mounted rows (tags and the bottom bar change it)
+         * Read the real height of mounted rows (groups and tags change it)
          * @returns {void}
          */
         measureRows() {
@@ -415,7 +457,7 @@ export default {
             }
         },
         /**
-         * Track the list container's scroll position for windowing
+         * Track where the viewport is over the list for windowing; the page scrolls, not the list
          * @returns {void}
          */
         onListScroll() {
@@ -423,19 +465,33 @@ export default {
             if (!el) {
                 return;
             }
-            this.scrollTop = el.scrollTop;
-            this.viewportHeight = el.clientHeight;
+            this.scrollTop = Math.max(0, -el.getBoundingClientRect().top);
+            this.viewportHeight = window.innerHeight;
         },
+
         /**
-         * Handle user scroll
+         * Esc leaves select mode
+         * @param {KeyboardEvent} event Key event
          * @returns {void}
          */
-        onScroll() {
-            if (window.top.scrollY <= 133) {
-                this.windowTop = window.top.scrollY;
-            } else {
-                this.windowTop = 133;
+        onKeydown(event) {
+            if (event.key === "Escape" && this.selectMode) {
+                this.cancelSelectMode();
             }
+        },
+        toggleSelectAll() {
+            this.selectAll = !this.selectAll;
+            if (!this.selectAll) {
+                this.selectedMonitors = {};
+            }
+        },
+        /**
+         * Remove one kind of filter
+         * @param {string} key status, active or tags
+         * @returns {void}
+         */
+        clearFilter(key) {
+            this.filterState = { ...this.filterState, [key]: null };
         },
         /**
          * Get URL of monitor
@@ -519,6 +575,7 @@ export default {
          * @returns {void}
          */
         select(id) {
+            this.selectMode = true;
             this.selectedMonitors[id] = true;
         },
         /**
@@ -542,7 +599,29 @@ export default {
          * @returns {void}
          */
         pauseDialog() {
+            this.pauseId = null;
             this.$refs.confirmPause.show();
+        },
+        /**
+         * Ask before pausing one monitor
+         * @param {number} id ID of monitor
+         * @returns {void}
+         */
+        pauseOne(id) {
+            this.pauseId = id;
+            this.$refs.confirmPause.show();
+        },
+        /**
+         * Pause the one monitor asked for, or the selected ones
+         * @returns {void}
+         */
+        onPauseConfirmed() {
+            if (this.pauseId == null) {
+                this.pauseSelected();
+                return;
+            }
+            this.$root.getSocket().emit("pauseMonitor", this.pauseId, (res) => this.$root.toastRes(res));
+            this.pauseId = null;
         },
         /**
          * Pause each selected monitor
@@ -688,7 +767,17 @@ export default {
                         .filter((monitorTagId) => this.filterState.tags.includes(monitorTagId)).length > 0; // perform Array Intersaction between filter and monitor's tags
             }
 
-            return searchTextMatch && statusMatch && activeMatch && tagsMatch;
+            // filter by tab
+            let tabMatch = true;
+            if (this.tab === "down") {
+                tabMatch = this.$root.lastHeartbeatList[monitor.id]?.status === DOWN;
+            } else if (this.tab === "push") {
+                tabMatch = monitor.type === "push";
+            } else if (this.tab === "paused") {
+                tabMatch = !monitor.active;
+            }
+
+            return searchTextMatch && statusMatch && activeMatch && tagsMatch && tabMatch;
         },
         /**
          * Function used in Array.sort to order monitors in a list.
@@ -730,215 +819,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "../assets/vars.scss";
-
-.shadow-box {
-    height: calc(100vh - 150px);
-    position: sticky;
-    top: 10px;
-}
-
-.small-padding {
-    padding-left: 5px !important;
-    padding-right: 5px !important;
-}
-
-.list-header {
-    border-bottom: 1px solid #dee2e6;
-    border-radius: 10px 10px 0 0;
-    margin-bottom: 10px;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    .dark & {
-        background-color: $dark-header-bg;
-        border-bottom: 0;
-    }
-}
-
-.filter-row {
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: nowrap;
-    width: 100%;
-
-    .form-check-input {
-        cursor: pointer;
-        margin: 0;
-        margin-left: 6px;
-        flex-shrink: 0;
-    }
-}
-
-.filters-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.actions-wrapper {
-    display: flex;
-    align-items: center;
-
-    .dropdown-toggle {
-        white-space: nowrap;
-
-        &:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-    }
-
-    .dropdown-menu {
-        min-width: 140px;
-        padding: 4px 0;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-
-        .dark & {
-            background-color: $dark-bg;
-            border-color: $dark-border-color;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-    }
-
-    .dropdown-item {
-        cursor: pointer;
-        padding: 6px 12px;
-        font-size: 0.9em;
-
-        .dark & {
-            color: $dark-font-color;
-
-            &:hover {
-                background-color: $dark-bg2;
-                color: $dark-font-color;
-            }
-        }
-
-        &.text-danger {
-            color: #dc3545;
-
-            .dark & {
-                color: #dc3545;
-            }
-
-            &:hover {
-                background-color: #dc3545 !important;
-                color: white !important;
-
-                .dark & {
-                    background-color: #dc3545 !important;
-                    color: white !important;
-                }
-
-                svg {
-                    color: white !important;
-                }
-            }
-        }
-    }
-}
-
-.selection-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-}
-
-.selected-count {
-    white-space: nowrap;
-    font-size: 0.9em;
-    color: $primary;
-
-    .dark & {
-        color: $dark-font-color;
-    }
-}
-
-.selection-controls {
-    margin-top: 5px;
-    display: flex;
-    align-items: center;
-
-    .d-flex {
-        width: 100%;
-    }
-
-    .gap-2 {
-        gap: 0.5rem;
-    }
-
-    .selected-count {
-        margin-left: auto;
-    }
-}
-
-@media (max-width: 975px) {
-    .filter-row {
-        flex-direction: column-reverse;
-        align-items: stretch;
-        gap: 8px;
-    }
-
-    .search-wrapper {
-        width: 100% !important;
-        max-width: 100% !important;
-        margin-left: 0 !important;
-        flex: 1 1 100%;
-    }
-
-    .filters-group {
-        width: 100%;
-    }
-}
-
-@media (max-width: 770px) {
-    .list-header {
-        margin-bottom: 10px;
-        padding: 20px;
-    }
-}
-
-.search-wrapper {
-    display: flex;
-    align-items: center;
-    position: relative;
-    flex: 1 1 auto;
-    min-width: 0;
-    max-width: 300px;
-    margin-left: auto;
-    order: 1;
-
-    form {
-        width: 100%;
-    }
-}
-
-.search-icon {
-    position: absolute;
-    right: 10px;
-    color: #c0c0c0;
-    cursor: pointer;
-    transition: all ease-in-out 0.1s;
-    z-index: 1;
-
-    &:hover {
-        opacity: 0.5;
-    }
-}
-
-.search-input {
-    width: 100%;
-    padding-right: 30px;
-    transition: none !important;
-}
-
 .list-loading {
     padding: 10px 4px;
 }
@@ -959,24 +839,6 @@ export default {
 
     100% {
         background-position: -200% 0;
-    }
-}
-
-.tags {
-    margin-top: 4px;
-    padding-left: 67px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0;
-}
-
-@media (max-width: 549px), (min-width: 770px) and (max-width: 1149px), (min-width: 1200px) and (max-width: 1499px) {
-    .selection-controls {
-        .selected-count {
-            margin-left: 0;
-            width: 100%;
-            margin-top: 0.25rem;
-        }
     }
 }
 </style>

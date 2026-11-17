@@ -222,9 +222,6 @@ export default {
         }
     }
 
-    // Smooth entrance animation
-    animation: tooltip-fade-in 0.2s $easing-out;
-
     &.tooltip-above {
         transform: translateX(-50%) translateY(-8px);
 
@@ -251,26 +248,6 @@ export default {
             background: rgba(31, 41, 55, 0.95);
             border-color: rgba(107, 114, 128, 0.3);
         }
-    }
-}
-
-@keyframes tooltip-fade-in {
-    from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(4px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-    }
-}
-
-// Accessibility improvements
-
-@media (prefers-reduced-motion: reduce) {
-    .tooltip-wrapper {
-        animation: none !important;
     }
 }
 </style>

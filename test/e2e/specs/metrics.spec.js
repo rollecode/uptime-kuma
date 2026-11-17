@@ -12,8 +12,8 @@ const adminPassword = "Kuma-E2E-8f4Q2xR9p";
  */
 async function openGeneralSettings(page) {
     await page.goto("./settings/general");
-    await Promise.race([page.locator("#prometheusApiEnabled").waitFor(), page.getByPlaceholder("Username").waitFor()]);
-    if (await page.getByPlaceholder("Username").isVisible()) {
+    await Promise.race([page.locator("#prometheusApiEnabled").waitFor(), page.getByLabel("Username").waitFor()]);
+    if (await page.getByLabel("Username").isVisible()) {
         await login(page);
     }
     // The login redirects back to the settings page

@@ -15,9 +15,9 @@
             {{ $t("Settings") }}
         </h1>
 
-        <div class="shadow-box shadow-box-settings">
+        <div class="carbon-settings">
             <div class="row">
-                <div v-if="showSubMenu" class="settings-menu col-lg-3 col-md-5">
+                <div v-if="showSubMenu" class="settings-menu col-lg-3 col-md-4">
                     <router-link v-for="(item, key) in subMenus" :key="key" :to="`/settings/${key}`">
                         <div class="menu-item">
                             {{ item.title }}
@@ -32,16 +32,12 @@
                         </div>
                     </a>
                 </div>
-                <div class="settings-content col-lg-9 col-md-7">
+                <div class="settings-content col-lg-9 col-md-8">
                     <div v-if="currentPage" class="settings-content-header">
                         {{ subMenus[currentPage].title }}
                     </div>
-                    <div class="mx-3">
-                        <router-view v-slot="{ Component }">
-                            <transition name="slide-fade" appear>
-                                <component :is="Component" />
-                            </transition>
-                        </router-view>
+                    <div>
+                        <router-view />
                     </div>
                 </div>
             </div>
@@ -248,11 +244,6 @@ export default {
 <style lang="scss" scoped>
 @import "../assets/vars.scss";
 
-.shadow-box-settings {
-    padding: 20px;
-    min-height: calc(100vh - 155px);
-}
-
 footer {
     color: $secondary-text;
     font-size: 13px;
@@ -267,56 +258,29 @@ footer {
     }
 
     .menu-item {
-        border-radius: 10px;
-        margin: 0.5em;
-        padding: 0.7em 1em;
+        border-radius: 6px;
+        margin: 0 0 2px;
+        padding: 6px 8px;
         cursor: pointer;
-        border-left-width: 0;
-        transition: all ease-in-out 0.1s;
+        color: var(--c-fg-2);
     }
 
     .menu-item:hover {
-        background: $highlight-white;
-
-        .dark & {
-            background: $dark-header-bg;
-        }
+        color: var(--c-fg);
     }
 
     .active .menu-item {
-        background: $highlight-white;
-        border-left: 4px solid $primary;
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-
-        .dark & {
-            background: $dark-header-bg;
-        }
+        color: var(--c-fg);
+        background: var(--c-fill);
     }
 }
 
 .settings-content {
     .settings-content-header {
-        width: calc(100% + 20px);
-        border-bottom: 1px solid #dee2e6;
-        border-radius: 0 10px 0 0;
-        margin-top: -20px;
-        margin-right: -20px;
-        padding: 12.5px 1em;
-        font-size: 26px;
-
-        .dark & {
-            background: $dark-header-bg;
-            border-bottom: 0;
-        }
-
-        .mobile & {
-            padding: 15px 0 0 0;
-
-            .dark & {
-                background-color: transparent;
-            }
-        }
+        margin-bottom: 8px;
+        font-size: 16px;
+        line-height: 24px;
+        font-weight: 500;
     }
 }
 

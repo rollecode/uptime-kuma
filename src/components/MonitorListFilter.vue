@@ -1,219 +1,131 @@
 <template>
-    <MonitorListFilterDropdown
-        test-id="filter-status"
-        :filterActive="filterState.status?.length > 0 || filterState.active?.length > 0"
-    >
-        <template #status>
-            <Status
-                v-if="filterState.status?.length === 1 && !filterState.active?.length"
-                :status="filterState.status[0]"
-            />
-            <span
-                v-else-if="!filterState.status?.length && filterState.active?.length === 1"
-                class="badge status-pill"
-                :class="filterState.active[0] ? 'running' : 'paused'"
+    <div class="dropdown">
+        <!-- No :class here: Bootstrap keeps the open state in the class attribute -->
+        <button
+            type="button"
+            class="carbon-tool"
+            data-testid="filter-status"
+            :data-filtered="numFiltersActive > 0"
+            data-bs-toggle="dropdown"
+            data-bs-auto-close="outside"
+            aria-expanded="false"
+            @click="getExistingTags"
+        >
+            <svg
+                aria-hidden="true"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
             >
-                <font-awesome-icon :icon="filterState.active[0] ? 'play' : 'pause'" class="icon-small" />
-                {{ filterState.active[0] ? $t("Running") : $t("filterActivePaused") }}
-            </span>
-            <span v-else>
-                {{ $t("Status") }}
-            </span>
-        </template>
-        <template #dropdown>
-            <li>
-                <div
+                <path d="M3 5h18l-7 8v6l-4 2v-8z" />
+            </svg>
+            {{ $t("Filter") }}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end carbon-menu">
+            <li class="carbon-menu-heading">{{ $t("Status") }}</li>
+            <li v-for="row in statusRows" :key="row.status">
+                <button
+                    type="button"
                     class="dropdown-item"
-                    tabindex="0"
-                    data-testid="filter-status-up"
-                    @click.stop="toggleStatusFilter(1)"
+                    :data-testid="'filter-status-' + row.key"
+                    :aria-pressed="!!filterState.status?.includes(row.status)"
+                    @click="toggleStatusFilter(row.status)"
                 >
-                    <div class="d-flex align-items-center justify-content-between">
-                        <Status :status="1" />
-                        <span class="ps-3">
-                            {{ $root.stats.up }}
-                            <span v-if="filterState.status?.includes(1)" class="px-1 filter-active">
-                                <font-awesome-icon icon="check" />
-                            </span>
-                        </span>
-                    </div>
-                </div>
+                    <span class="carbon-dot" :class="row.key" aria-hidden="true"><i /></span>
+                    {{ row.label }}
+                    <span class="count">{{ row.count }}</span>
+                    <input
+                        class="form-check-input menu-check"
+                        type="checkbox"
+                        tabindex="-1"
+                        aria-hidden="true"
+                        :checked="!!filterState.status?.includes(row.status)"
+                    />
+                </button>
             </li>
-            <li>
-                <div
+            <li><hr class="dropdown-divider" /></li>
+            <li class="carbon-menu-heading">{{ $t("State") }}</li>
+            <li v-for="row in stateRows" :key="String(row.active)">
+                <button
+                    type="button"
                     class="dropdown-item"
-                    tabindex="0"
-                    data-testid="filter-status-down"
-                    @click.stop="toggleStatusFilter(0)"
+                    :data-testid="row.active ? 'filter-active-running' : 'filter-active-paused'"
+                    :aria-pressed="!!filterState.active?.includes(row.active)"
+                    @click="toggleActiveFilter(row.active)"
                 >
-                    <div class="d-flex align-items-center justify-content-between">
-                        <Status :status="0" />
-                        <span class="ps-3">
-                            {{ $root.stats.down }}
-                            <span v-if="filterState.status?.includes(0)" class="px-1 filter-active">
-                                <font-awesome-icon icon="check" />
-                            </span>
-                        </span>
-                    </div>
-                </div>
+                    <span class="carbon-dot" :class="row.key" aria-hidden="true"><i /></span>
+                    {{ row.label }}
+                    <span class="count">{{ row.count }}</span>
+                    <input
+                        class="form-check-input menu-check"
+                        type="checkbox"
+                        tabindex="-1"
+                        aria-hidden="true"
+                        :checked="!!filterState.active?.includes(row.active)"
+                    />
+                </button>
             </li>
-            <li>
-                <div
-                    class="dropdown-item"
-                    tabindex="0"
-                    data-testid="filter-status-pending"
-                    @click.stop="toggleStatusFilter(2)"
-                >
-                    <div class="d-flex align-items-center justify-content-between">
-                        <Status :status="2" />
-                        <span class="ps-3">
-                            {{ $root.stats.pending }}
-                            <span v-if="filterState.status?.includes(2)" class="px-1 filter-active">
-                                <font-awesome-icon icon="check" />
-                            </span>
-                        </span>
-                    </div>
-                </div>
-            </li>
-            <li>
-                <div
-                    class="dropdown-item"
-                    tabindex="0"
-                    data-testid="filter-status-maintenance"
-                    @click.stop="toggleStatusFilter(3)"
-                >
-                    <div class="d-flex align-items-center justify-content-between">
-                        <Status :status="3" />
-                        <span class="ps-3">
-                            {{ $root.stats.maintenance }}
-                            <span v-if="filterState.status?.includes(3)" class="px-1 filter-active">
-                                <font-awesome-icon icon="check" />
-                            </span>
-                        </span>
-                    </div>
-                </div>
-            </li>
-            <li>
-                <hr class="dropdown-divider" />
-            </li>
-            <li>
-                <div
-                    class="dropdown-item"
-                    tabindex="0"
-                    data-testid="filter-active-running"
-                    @click.stop="toggleActiveFilter(true)"
-                >
-                    <div class="d-flex align-items-center justify-content-between">
-                        <span class="badge status-pill running">
-                            <font-awesome-icon icon="play" class="icon-small" />
-                            {{ $t("Running") }}
-                        </span>
-                        <span class="ps-3">
-                            {{ $root.stats.active }}
-                            <span v-if="filterState.active?.includes(true)" class="px-1 filter-active">
-                                <font-awesome-icon icon="check" />
-                            </span>
-                        </span>
-                    </div>
-                </div>
-            </li>
-            <li>
-                <div
-                    class="dropdown-item"
-                    tabindex="0"
-                    data-testid="filter-active-paused"
-                    @click.stop="toggleActiveFilter(false)"
-                >
-                    <div class="d-flex align-items-center justify-content-between">
-                        <span class="badge status-pill paused">
-                            <font-awesome-icon icon="pause" class="icon-small" />
-                            {{ $t("filterActivePaused") }}
-                        </span>
-                        <span class="ps-3">
-                            {{ $root.stats.pause }}
-                            <span v-if="filterState.active?.includes(false)" class="px-1 filter-active">
-                                <font-awesome-icon icon="check" />
-                            </span>
-                        </span>
-                    </div>
-                </div>
-            </li>
-        </template>
-    </MonitorListFilterDropdown>
-    <MonitorListFilterDropdown
-        test-id="filter-tags"
-        :filterActive="filterState.tags?.length > 0"
-        @open-menu="getExistingTags"
-    >
-        <template #status>
-            <span
-                v-if="filterState.tags?.length === 1"
-                class="selected-tag-wrapper"
-                :title="tagsList.find((tag) => tag.id === filterState.tags[0])?.name"
-            >
-                <Tag :item="tagsList.find((tag) => tag.id === filterState.tags[0])" :size="'sm'" :constrained="true" />
-            </span>
-            <span v-else>
-                {{ $t("Tags") }}
-            </span>
-        </template>
-        <template #dropdown>
-            <li class="list-unstyled m-0 p-0">
-                <div class="tags-dropdown-scroll">
-                    <ul class="list-unstyled m-0 p-0">
-                        <li v-for="tag in tagsList" :key="tag.id">
-                            <div
-                                class="dropdown-item"
-                                tabindex="0"
-                                :data-testid="'filter-tag-' + tag.id"
-                                @click.stop="toggleTagFilter(tag)"
-                            >
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <span class="tag-name-wrapper" :title="tag.name">
-                                        <Tag :item="tag" :size="'sm'" :scrollable="true" :constrained="true" />
-                                    </span>
-                                    <span class="ps-3">
-                                        {{ getTaggedMonitorCount(tag) }}
-                                        <span v-if="filterState.tags?.includes(tag.id)" class="px-1 filter-active">
-                                            <font-awesome-icon icon="check" />
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-                        </li>
-                        <li v-if="tagsList.length === 0">
-                            <div class="dropdown-item disabled px-3">
-                                {{ $t("No tags found.") }}
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-            </li>
-        </template>
-    </MonitorListFilterDropdown>
+            <template v-if="tagsList.length > 0">
+                <li><hr class="dropdown-divider" /></li>
+                <li class="carbon-menu-heading">{{ $t("Tags") }}</li>
+                <li v-for="tag in tagsList" :key="tag.id">
+                    <button
+                        type="button"
+                        class="dropdown-item"
+                        :data-testid="'filter-tag-' + tag.id"
+                        :aria-pressed="!!filterState.tags?.includes(tag.id)"
+                        @click="toggleTagFilter(tag)"
+                    >
+                        <span class="carbon-dot" :style="{ '--dot': tag.color }" aria-hidden="true"><i /></span>
+                        <span class="text-truncate">{{ tag.name }}</span>
+                        <span class="count">{{ getTaggedMonitorCount(tag) }}</span>
+                        <input
+                            class="form-check-input menu-check"
+                            type="checkbox"
+                            tabindex="-1"
+                            aria-hidden="true"
+                            :checked="!!filterState.tags?.includes(tag.id)"
+                        />
+                    </button>
+                </li>
+            </template>
+        </ul>
+    </div>
     <button
         v-if="hasGroups"
         type="button"
-        class="btn btn-outline-normal btn-collapse-all"
+        class="carbon-tool carbon-tool-icon"
         data-testid="collapse-all"
         :title="allCollapsed ? $t('Expand All Groups') : $t('Collapse All Groups')"
+        :aria-label="allCollapsed ? $t('Expand All Groups') : $t('Collapse All Groups')"
         @click="$emit('toggle-collapse-all')"
     >
-        <font-awesome-icon :icon="allCollapsed ? 'folder' : 'folder-open'" fixed-width />
+        <svg
+            aria-hidden="true"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+        >
+            <path v-if="allCollapsed" d="m7 15 5 5 5-5M7 9l5-5 5 5" />
+            <path v-else d="m7 20 5-5 5 5M7 4l5 5 5-5" />
+        </svg>
     </button>
 </template>
 
 <script>
-import MonitorListFilterDropdown from "./MonitorListFilterDropdown.vue";
-import Status from "./Status.vue";
-import Tag from "./Tag.vue";
+import { UP, DOWN, PENDING, MAINTENANCE } from "../util.ts";
 
 export default {
-    components: {
-        MonitorListFilterDropdown,
-        Status,
-        Tag,
-    },
     props: {
         filterState: {
             type: Object,
@@ -235,6 +147,22 @@ export default {
         };
     },
     computed: {
+        statusRows() {
+            const s = this.$root.checkSummary;
+            return [
+                { status: UP, key: "up", label: this.$t("Up"), count: s.up },
+                { status: DOWN, key: "down", label: this.$t("Down"), count: s.down },
+                { status: PENDING, key: "pending", label: this.$t("Pending"), count: s.pending },
+                { status: MAINTENANCE, key: "maintenance", label: this.$t("statusMaintenance"), count: s.maintenance },
+            ];
+        },
+        stateRows() {
+            const s = this.$root.checkSummary;
+            return [
+                { active: true, key: "up", label: this.$t("Active"), count: s.total - s.paused },
+                { active: false, key: "paused", label: this.$t("filterActivePaused"), count: s.paused },
+            ];
+        },
         numFiltersActive() {
             let num = 0;
 
@@ -246,9 +174,6 @@ export default {
 
             return num;
         },
-    },
-    mounted() {
-        this.getExistingTags();
     },
     methods: {
         toggleStatusFilter(status) {
@@ -319,103 +244,3 @@ export default {
     },
 };
 </script>
-
-<style lang="scss" scoped>
-@import "../assets/vars.scss";
-
-.dropdown-item {
-    cursor: pointer;
-}
-
-.simple-status {
-    min-width: 64px;
-    border: 1px solid #d1d5db;
-    background-color: transparent !important;
-    color: inherit !important;
-
-    .dark & {
-        border-color: #6b7280;
-    }
-}
-
-.clear-filters-btn {
-    font-size: 0.8em;
-    margin-right: 5px;
-    display: flex;
-    align-items: center;
-    padding: 2px 10px;
-    border-radius: 16px;
-    background-color: transparent;
-
-    .dark & {
-        color: $dark-font-color;
-        border: 1px solid $dark-font-color2;
-    }
-
-    &.active {
-        border: 1px solid $highlight;
-        background-color: $highlight-white;
-
-        .dark & {
-            background-color: $dark-font-color2;
-        }
-    }
-}
-
-.dropdown-divider {
-    margin: 0.5rem 0;
-    border-top: 1px solid #d1d5db;
-
-    .dark & {
-        border-top-color: #6b7280;
-    }
-}
-
-.status-pill {
-    min-width: 64px;
-    display: inline-block;
-    text-align: center;
-
-    &.running,
-    &.paused {
-        background-color: white !important;
-        border: 1px solid #d1d5db;
-        color: inherit;
-
-        .dark & {
-            background-color: transparent !important;
-            border-color: #6b7280;
-            color: $dark-font-color;
-        }
-
-        .icon-small {
-            font-size: 0.75em;
-            margin-right: 4px;
-        }
-    }
-}
-
-.btn-collapse-all {
-    transition: none !important;
-}
-
-.tags-dropdown-scroll {
-    max-height: min(50vh, 320px);
-    max-width: 45vw;
-    overflow-y: auto;
-}
-
-.tag-name-wrapper {
-    min-width: 0;
-    overflow: hidden;
-    max-width: min(800px, 38vw);
-    display: flex;
-    align-items: center;
-}
-
-.selected-tag-wrapper {
-    max-width: 120px;
-    display: flex;
-    align-items: center;
-}
-</style>

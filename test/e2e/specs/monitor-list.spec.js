@@ -33,7 +33,7 @@ async function addMonitor(page, options, loginFirst = false) {
  * @returns {Promise<import("@playwright/test").Locator>} Monitor list locator
  */
 async function openDashboard(page) {
-    await page.goto("./dashboard");
+    await page.goto("./list");
     await page.waitForSelector('[data-testid="monitor-list"] .draggable-item');
     return page.getByTestId("monitor-list");
 }
@@ -85,11 +85,11 @@ test.describe("Monitor list", () => {
 
     test("filters monitors by status", async ({ page }) => {
         await addMonitor(page, { name: "Push Up", type: "push" }, true);
-        const pushUp = await page.locator('a[href*="/api/push/"]').first().getAttribute("href");
+        const pushUp = await page.getByLabel("Push URL").inputValue();
         await page.request.get(pushUp);
 
         await addMonitor(page, { name: "Push Down", type: "push" });
-        const pushDown = await page.locator('a[href*="/api/push/"]').first().getAttribute("href");
+        const pushDown = await page.getByLabel("Push URL").inputValue();
         await page.request.get(pushDown.replace("status=up", "status=down"));
 
         const list = await openDashboard(page);
@@ -103,7 +103,7 @@ test.describe("Monitor list", () => {
 
     test("status filter excludes a paused monitor that went down", async ({ page }) => {
         await addMonitor(page, { name: "Paused Down", type: "push" }, true);
-        const pushUrl = await page.locator('a[href*="/api/push/"]').first().getAttribute("href");
+        const pushUrl = await page.getByLabel("Push URL").inputValue();
         await page.request.get(pushUrl.replace("status=up", "status=down"));
 
         // Pause it, so the stats count it as paused instead of down
@@ -124,11 +124,10 @@ test.describe("Monitor list", () => {
 
         const list = await openDashboard(page);
 
-        // Entering select mode selects everything; keep only Alpha selected
+        // Select only Alpha
         await page.getByTestId("select-mode-toggle").click();
         await expect(page.getByTestId("select-all-toggle")).toBeVisible();
-        await page.locator('[data-testid^="monitor-select-"]').nth(1).uncheck();
-        await page.getByTestId("bulk-actions").click();
+        await page.locator('[data-testid^="monitor-select-"]').first().check();
         await page.getByTestId("bulk-pause").click();
         await page.locator(".modal.show").waitFor();
         await confirmDialog(page);
@@ -146,7 +145,6 @@ test.describe("Monitor list", () => {
             await expect(page.getByTestId("select-all-toggle")).toBeVisible();
         }
         await page.locator('[data-testid^="monitor-select-"]').first().check();
-        await page.getByTestId("bulk-actions").click();
         await page.getByTestId("bulk-resume").click();
 
         // Clearing the filter shows both again
@@ -163,8 +161,7 @@ test.describe("Monitor list", () => {
 
         await page.getByTestId("select-mode-toggle").click();
         await expect(page.getByTestId("select-all-toggle")).toBeVisible();
-        await page.getByTestId("select-all-toggle").check();
-        await page.getByTestId("bulk-actions").click();
+        await page.getByTestId("select-all-toggle").click();
         await page.getByTestId("bulk-delete").click();
         await confirmDialog(page);
 
@@ -176,9 +173,9 @@ test.describe("Monitor list", () => {
         await addMonitor(page, { name: "Untagged Monitor" });
 
         // Add a tag to the first monitor through its edit form
-        await page.goto("./dashboard");
+        await page.goto("./list");
         await page.waitForSelector('[data-testid="monitor-list"] .draggable-item');
-        const href = await page.locator("a.item", { hasText: "Tagged Monitor" }).first().getAttribute("href");
+        const href = await page.locator("a.nm", { hasText: "Tagged Monitor" }).first().getAttribute("href");
         const monitorID = href.split("/").pop();
 
         await page.goto("./edit/" + monitorID);
@@ -192,7 +189,8 @@ test.describe("Monitor list", () => {
         await expect(page.locator(".Vue-Toastification__toast").first()).toContainText("Saved");
 
         const list = await openDashboard(page);
-        await page.getByTestId("filter-tags").click();
+        // Tags are a section of the filter menu
+        await page.getByTestId("filter-status").click();
         await page.locator('[data-testid^="filter-tag-"]').first().waitFor();
         await page.locator('[data-testid^="filter-tag-"]').first().click();
 

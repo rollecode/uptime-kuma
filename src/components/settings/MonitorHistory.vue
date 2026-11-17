@@ -1,46 +1,50 @@
 <template>
     <div>
-        <div class="my-4">
-            <label for="keepDataPeriodDays" class="form-label">
-                {{ $t("clearDataOlderThan", [settings.keepDataPeriodDays]) }}
-                {{ $t("infiniteRetention") }}
-            </label>
-            <input
-                id="keepDataPeriodDays"
-                v-model="settings.keepDataPeriodDays"
-                type="number"
-                class="form-control"
-                required
-                min="0"
-                step="1"
-            />
-            <div v-if="settings.keepDataPeriodDays < 0" class="form-text">
-                {{ $t("dataRetentionTimeError") }}
+        <section class="carbon-setting">
+            <div class="carbon-setting-label">
+                <h3>{{ $t("Keep history for") }}</h3>
+                <p>{{ $t("historyForeverHelp") }}</p>
             </div>
-        </div>
-        <div class="my-4">
-            <button class="btn btn-primary" type="button" @click="saveSettings()">
-                {{ $t("Save") }}
-            </button>
-        </div>
-        <div class="my-4">
-            <div v-if="$root.info.dbType === 'sqlite'" class="my-3">
-                <button class="btn btn-outline-info me-2" @click="shrinkDatabase">
-                    {{ $t("Shrink Database") }} ({{ databaseSizeDisplay }})
-                </button>
-                <i18n-t tag="div" keypath="shrinkDatabaseDescriptionSqlite" class="form-text mt-2 mb-4 ms-2">
-                    <template #vacuum>
-                        <code>VACUUM</code>
-                    </template>
-                    <template #auto_vacuum>
-                        <code>AUTO_VACUUM</code>
-                    </template>
+            <div class="carbon-setting-control">
+                <div class="carbon-unit">
+                    <input
+                        id="keepDataPeriodDays"
+                        v-model="settings.keepDataPeriodDays"
+                        type="number"
+                        class="form-control"
+                        required
+                        min="0"
+                        step="1"
+                        :aria-label="$t('Keep history for')"
+                    />
+                    <span>{{ $t("daysUnit", Number(settings.keepDataPeriodDays) || 0) }}</span>
+                </div>
+                <div v-if="settings.keepDataPeriodDays < 0" class="form-text">
+                    {{ $t("dataRetentionTimeError") }}
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-primary" type="button" @click="saveSettings()">{{ $t("Save") }}</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="carbon-setting">
+            <div class="carbon-setting-label">
+                <h3>{{ $t("Database") }}</h3>
+                <i18n-t v-if="$root.info.dbType === 'sqlite'" tag="p" keypath="shrinkDatabaseDescriptionSqlite">
+                    <template #vacuum><code>VACUUM</code></template>
+                    <template #auto_vacuum><code>AUTO_VACUUM</code></template>
                 </i18n-t>
             </div>
-            <button id="clearAllStats-btn" class="btn btn-outline-danger me-2 mb-2" @click="confirmClearStatistics">
-                {{ $t("Clear all statistics") }}
-            </button>
-        </div>
+            <div class="carbon-setting-control d-flex flex-wrap gap-2 align-items-start">
+                <button v-if="$root.info.dbType === 'sqlite'" class="btn btn-normal" @click="shrinkDatabase">
+                    {{ $t("Shrink database") }} ({{ databaseSizeDisplay }})
+                </button>
+                <button id="clearAllStats-btn" class="btn btn-outline-danger" @click="confirmClearStatistics">
+                    {{ $t("Clear all statistics") }}
+                </button>
+            </div>
+        </section>
         <Confirm
             ref="confirmClearStatistics"
             btn-style="btn-danger"
@@ -70,13 +74,13 @@ export default {
 
     computed: {
         settings() {
-            return this.$parent.$parent.$parent.settings;
+            return this.$parent.$parent.settings;
         },
         saveSettings() {
-            return this.$parent.$parent.$parent.saveSettings;
+            return this.$parent.$parent.saveSettings;
         },
         settingsLoaded() {
-            return this.$parent.$parent.$parent.settingsLoaded;
+            return this.$parent.$parent.settingsLoaded;
         },
         databaseSizeDisplay() {
             return Math.round((this.databaseSize / 1024 / 1024) * 10) / 10 + " MB";

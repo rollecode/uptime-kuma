@@ -15,7 +15,7 @@ test.describe("Badge endpoints", () => {
         await page.waitForURL(/\/dashboard\/\d+/);
 
         const monitorID = page.url().split("/").pop();
-        const pushUrl = await page.locator('a[href*="/api/push/"]').first().getAttribute("href");
+        const pushUrl = await page.getByLabel("Push URL").inputValue();
         await page.request.get(`${pushUrl}?ping=50`);
 
         const uptimeBadge = await page.request.get(`/api/badge/${monitorID}/uptime/24`);

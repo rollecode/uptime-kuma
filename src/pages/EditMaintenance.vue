@@ -1,445 +1,419 @@
 <template>
-    <transition name="slide-fade" appear>
-        <div>
-            <h1 class="mb-3">{{ pageName }}</h1>
-            <form @submit.prevent="submit">
-                <div class="shadow-box shadow-box-with-fixed-bottom-bar">
-                    <div class="row">
-                        <div class="col-xl-10">
-                            <!-- Title -->
-                            <div class="mb-3">
-                                <label for="name" class="form-label">{{ $t("Title") }}</label>
+    <div>
+        <h1 class="mb-3">{{ pageName }}</h1>
+        <form @submit.prevent="submit">
+            <div class="shadow-box shadow-box-with-fixed-bottom-bar">
+                <div class="row">
+                    <div class="col-xl-10">
+                        <!-- Title -->
+                        <div class="mb-3">
+                            <label for="name" class="form-label">{{ $t("Title") }}</label>
+                            <input id="name" v-model="maintenance.title" type="text" class="form-control" required />
+                        </div>
+
+                        <!-- Description -->
+                        <div class="my-3">
+                            <label for="description" class="form-label">{{ $t("Description") }}</label>
+                            <textarea
+                                id="description"
+                                v-model="maintenance.description"
+                                class="form-control"
+                            ></textarea>
+                            <div class="form-text">
+                                {{ $t("markdownSupported") }}
+                            </div>
+                        </div>
+
+                        <!-- Affected Monitors -->
+                        <h2 class="mt-5">{{ $t("Affected Monitors") }}</h2>
+
+                        <div class="my-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="form-text">{{ $t("affectedMonitorsDescription") }}</div>
+                            </div>
+
+                            <VueMultiselect
+                                id="affected_monitors"
+                                v-model="affectedMonitors"
+                                :options="affectedMonitorsOptionsWithSelectAll"
+                                track-by="id"
+                                label="pathName"
+                                :multiple="true"
+                                :close-on-select="false"
+                                :clear-on-select="false"
+                                :preserve-search="true"
+                                :placeholder="$t('Pick Affected Monitors...')"
+                                :preselect-first="false"
+                                :max-height="600"
+                                :taggable="false"
+                                @select="onMonitorSelect"
+                                @remove="onMonitorRemove"
+                            >
+                                <template #option="props">
+                                    <span v-if="props.option.id === 'select-all'">
+                                        {{ affectedMonitorsAllSelected ? $t("Deselect All") : $t("Select All") }}
+                                    </span>
+                                    <span v-else>{{ props.option.pathName }}</span>
+                                </template>
+                            </VueMultiselect>
+                        </div>
+
+                        <!-- Status pages to display maintenance info on -->
+                        <h2 class="mt-5">{{ $t("Status Pages") }}</h2>
+                        {{ $t("affectedStatusPages") }}
+
+                        <div class="my-3">
+                            <!-- Show on all pages -->
+                            <div class="form-check mb-2">
                                 <input
-                                    id="name"
-                                    v-model="maintenance.title"
-                                    type="text"
-                                    class="form-control"
-                                    required
+                                    id="show-on-all-pages"
+                                    v-model="showOnAllPages"
+                                    class="form-check-input"
+                                    type="checkbox"
                                 />
+                                <label class="form-check-label" for="show-powered-by">
+                                    {{ $t("All Status Pages") }}
+                                </label>
                             </div>
 
-                            <!-- Description -->
-                            <div class="my-3">
-                                <label for="description" class="form-label">{{ $t("Description") }}</label>
-                                <textarea
-                                    id="description"
-                                    v-model="maintenance.description"
-                                    class="form-control"
-                                ></textarea>
-                                <div class="form-text">
-                                    {{ $t("markdownSupported") }}
-                                </div>
-                            </div>
-
-                            <!-- Affected Monitors -->
-                            <h2 class="mt-5">{{ $t("Affected Monitors") }}</h2>
-
-                            <div class="my-3">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <div class="form-text">{{ $t("affectedMonitorsDescription") }}</div>
-                                </div>
-
+                            <div v-if="!showOnAllPages">
                                 <VueMultiselect
-                                    id="affected_monitors"
-                                    v-model="affectedMonitors"
-                                    :options="affectedMonitorsOptionsWithSelectAll"
+                                    id="selected_status_pages"
+                                    v-model="selectedStatusPages"
+                                    :options="selectedStatusPagesOptions"
                                     track-by="id"
-                                    label="pathName"
+                                    label="name"
                                     :multiple="true"
                                     :close-on-select="false"
                                     :clear-on-select="false"
                                     :preserve-search="true"
-                                    :placeholder="$t('Pick Affected Monitors...')"
+                                    :placeholder="$t('Select status pages...')"
                                     :preselect-first="false"
                                     :max-height="600"
                                     :taggable="false"
-                                    @select="onMonitorSelect"
-                                    @remove="onMonitorRemove"
-                                >
-                                    <template #option="props">
-                                        <span v-if="props.option.id === 'select-all'">
-                                            {{ affectedMonitorsAllSelected ? $t("Deselect All") : $t("Select All") }}
-                                        </span>
-                                        <span v-else>{{ props.option.pathName }}</span>
-                                    </template>
-                                </VueMultiselect>
+                                ></VueMultiselect>
+                            </div>
+                        </div>
+
+                        <h2 class="mt-5">{{ $t("Date and Time") }}</h2>
+
+                        <!-- Strategy -->
+                        <div class="my-3">
+                            <label for="strategy" class="form-label">{{ $t("Strategy") }}</label>
+                            <select id="strategy" v-model="maintenance.strategy" class="form-select">
+                                <option value="manual">{{ $t("strategyManual") }}</option>
+                                <option value="single">{{ $t("Single Maintenance Window") }}</option>
+                                <option value="cron">{{ $t("cronExpression") }}</option>
+                                <option value="recurring-interval">
+                                    {{ $t("Recurring") }} - {{ $t("recurringInterval") }}
+                                </option>
+                                <option value="recurring-weekday">{{ $t("Recurring") }} - {{ $t("dayOfWeek") }}</option>
+                                <option value="recurring-day-of-month">
+                                    {{ $t("Recurring") }} - {{ $t("dayOfMonth") }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <template v-if="maintenance.strategy === 'cron'">
+                            <!-- Cron -->
+                            <div class="my-3">
+                                <label for="cron" class="form-label">
+                                    {{ $t("cronExpression") }}
+                                </label>
+                                <p>{{ $t("cronScheduleDescription", { description: cronDescription }) }}</p>
+                                <input id="cron" v-model="maintenance.cron" type="text" class="form-control" required />
                             </div>
 
-                            <!-- Status pages to display maintenance info on -->
-                            <h2 class="mt-5">{{ $t("Status Pages") }}</h2>
-                            {{ $t("affectedStatusPages") }}
-
                             <div class="my-3">
-                                <!-- Show on all pages -->
-                                <div class="form-check mb-2">
+                                <!-- Duration -->
+                                <label for="duration" class="form-label">
+                                    {{ $t("Duration (Minutes)") }}
+                                </label>
+                                <input
+                                    id="duration"
+                                    v-model="maintenance.durationMinutes"
+                                    type="number"
+                                    class="form-control"
+                                    required
+                                    min="1"
+                                    step="1"
+                                />
+                            </div>
+                        </template>
+
+                        <!-- Recurring - Interval -->
+                        <template v-if="maintenance.strategy === 'recurring-interval'">
+                            <div class="my-3">
+                                <label for="interval-day" class="form-label">
+                                    {{ $t("recurringInterval") }}
+
+                                    <template v-if="maintenance.intervalDay >= 1">
+                                        ({{
+                                            $t("recurringIntervalMessage", maintenance.intervalDay, [
+                                                maintenance.intervalDay,
+                                            ])
+                                        }})
+                                    </template>
+                                </label>
+                                <input
+                                    id="interval-day"
+                                    v-model="maintenance.intervalDay"
+                                    type="number"
+                                    class="form-control"
+                                    required
+                                    min="1"
+                                    max="3650"
+                                    step="1"
+                                />
+                            </div>
+                        </template>
+
+                        <!-- Recurring - Weekday -->
+                        <template v-if="maintenance.strategy === 'recurring-weekday'">
+                            <div class="my-3">
+                                <label for="interval-day" class="form-label">
+                                    {{ $t("dayOfWeek") }}
+                                </label>
+
+                                <!-- Weekday Picker -->
+                                <div class="weekday-picker">
+                                    <div v-for="(weekday, index) in weekdays" :key="index">
+                                        <label class="form-check-label" :for="weekday.id">
+                                            {{ $t(weekday.langKey) }}
+                                        </label>
+                                        <div class="form-check-inline">
+                                            <input
+                                                :id="weekday.id"
+                                                v-model="maintenance.weekdays"
+                                                type="checkbox"
+                                                :value="weekday.value"
+                                                class="form-check-input"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Recurring - Day of month -->
+                        <template v-if="maintenance.strategy === 'recurring-day-of-month'">
+                            <div class="my-3">
+                                <label for="interval-day" class="form-label">
+                                    {{ $t("dayOfMonth") }}
+                                </label>
+
+                                <!-- Day Picker -->
+                                <div class="day-picker">
+                                    <div v-for="index in 31" :key="index">
+                                        <label class="form-check-label" :for="'day' + index">{{ index }}</label>
+                                        <div class="form-check-inline">
+                                            <input
+                                                :id="'day' + index"
+                                                v-model="maintenance.daysOfMonth"
+                                                type="checkbox"
+                                                :value="index"
+                                                class="form-check-input"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-3 mb-2">{{ $t("lastDay") }}</div>
+
+                                <div v-for="(lastDay, index) in lastDays" :key="index" class="form-check">
                                     <input
-                                        id="show-on-all-pages"
-                                        v-model="showOnAllPages"
-                                        class="form-check-input"
+                                        :id="lastDay.langKey"
+                                        v-model="maintenance.daysOfMonth"
                                         type="checkbox"
+                                        :value="lastDay.value"
+                                        class="form-check-input"
                                     />
-                                    <label class="form-check-label" for="show-powered-by">
-                                        {{ $t("All Status Pages") }}
+                                    <label class="form-check-label" :for="lastDay.langKey">
+                                        {{ $t(lastDay.langKey) }}
                                     </label>
                                 </div>
-
-                                <div v-if="!showOnAllPages">
-                                    <VueMultiselect
-                                        id="selected_status_pages"
-                                        v-model="selectedStatusPages"
-                                        :options="selectedStatusPagesOptions"
-                                        track-by="id"
-                                        label="name"
-                                        :multiple="true"
-                                        :close-on-select="false"
-                                        :clear-on-select="false"
-                                        :preserve-search="true"
-                                        :placeholder="$t('Select status pages...')"
-                                        :preselect-first="false"
-                                        :max-height="600"
-                                        :taggable="false"
-                                    ></VueMultiselect>
-                                </div>
                             </div>
+                        </template>
 
-                            <h2 class="mt-5">{{ $t("Date and Time") }}</h2>
-
-                            <!-- Strategy -->
+                        <template
+                            v-if="
+                                maintenance.strategy === 'recurring-interval' ||
+                                maintenance.strategy === 'recurring-weekday' ||
+                                maintenance.strategy === 'recurring-day-of-month'
+                            "
+                        >
+                            <!-- Maintenance Time Window of a Day -->
                             <div class="my-3">
-                                <label for="strategy" class="form-label">{{ $t("Strategy") }}</label>
-                                <select id="strategy" v-model="maintenance.strategy" class="form-select">
-                                    <option value="manual">{{ $t("strategyManual") }}</option>
-                                    <option value="single">{{ $t("Single Maintenance Window") }}</option>
-                                    <option value="cron">{{ $t("cronExpression") }}</option>
-                                    <option value="recurring-interval">
-                                        {{ $t("Recurring") }} - {{ $t("recurringInterval") }}
-                                    </option>
-                                    <option value="recurring-weekday">
-                                        {{ $t("Recurring") }} - {{ $t("dayOfWeek") }}
-                                    </option>
-                                    <option value="recurring-day-of-month">
-                                        {{ $t("Recurring") }} - {{ $t("dayOfMonth") }}
+                                <label class="form-label">{{ $t("Maintenance Time Window of a Day") }}</label>
+                                <Datepicker
+                                    v-model="maintenance.timeRange"
+                                    :dark="$root.isDark"
+                                    timePicker
+                                    disableTimeRangeValidation
+                                    range
+                                />
+                            </div>
+                        </template>
+
+                        <template
+                            v-if="
+                                maintenance.strategy === 'recurring-interval' ||
+                                maintenance.strategy === 'recurring-weekday' ||
+                                maintenance.strategy === 'recurring-day-of-month' ||
+                                maintenance.strategy === 'cron' ||
+                                maintenance.strategy === 'single'
+                            "
+                        >
+                            <!-- Timezone -->
+                            <div class="mb-4">
+                                <label for="timezone" class="form-label">
+                                    {{ $t("Timezone") }}
+                                </label>
+                                <select id="timezone" v-model="maintenance.timezoneOption" class="form-select">
+                                    <option value="SAME_AS_SERVER">{{ $t("sameAsServerTimezone") }}</option>
+                                    <option value="UTC">UTC</option>
+                                    <option
+                                        v-for="(timezone, index) in timezoneList"
+                                        :key="index"
+                                        :value="timezone.value"
+                                    >
+                                        {{ timezone.name }}
                                     </option>
                                 </select>
                             </div>
 
-                            <template v-if="maintenance.strategy === 'cron'">
-                                <!-- Cron -->
-                                <div class="my-3">
-                                    <label for="cron" class="form-label">
-                                        {{ $t("cronExpression") }}
-                                    </label>
-                                    <p>{{ $t("cronScheduleDescription", { description: cronDescription }) }}</p>
-                                    <input
-                                        id="cron"
-                                        v-model="maintenance.cron"
-                                        type="text"
-                                        class="form-control"
-                                        required
-                                    />
-                                </div>
+                            <!-- Date Range -->
+                            <div class="my-3">
+                                <label v-if="maintenance.strategy !== 'single'" class="form-label">
+                                    {{ $t("Effective Date Range") }}
+                                </label>
 
-                                <div class="my-3">
-                                    <!-- Duration -->
-                                    <label for="duration" class="form-label">
-                                        {{ $t("Duration (Minutes)") }}
-                                    </label>
-                                    <input
-                                        id="duration"
-                                        v-model="maintenance.durationMinutes"
-                                        type="number"
-                                        class="form-control"
-                                        required
-                                        min="1"
-                                        step="1"
-                                    />
-                                </div>
-                            </template>
-
-                            <!-- Recurring - Interval -->
-                            <template v-if="maintenance.strategy === 'recurring-interval'">
-                                <div class="my-3">
-                                    <label for="interval-day" class="form-label">
-                                        {{ $t("recurringInterval") }}
-
-                                        <template v-if="maintenance.intervalDay >= 1">
-                                            ({{
-                                                $t("recurringIntervalMessage", maintenance.intervalDay, [
-                                                    maintenance.intervalDay,
-                                                ])
-                                            }})
-                                        </template>
-                                    </label>
-                                    <input
-                                        id="interval-day"
-                                        v-model="maintenance.intervalDay"
-                                        type="number"
-                                        class="form-control"
-                                        required
-                                        min="1"
-                                        max="3650"
-                                        step="1"
-                                    />
-                                </div>
-                            </template>
-
-                            <!-- Recurring - Weekday -->
-                            <template v-if="maintenance.strategy === 'recurring-weekday'">
-                                <div class="my-3">
-                                    <label for="interval-day" class="form-label">
-                                        {{ $t("dayOfWeek") }}
-                                    </label>
-
-                                    <!-- Weekday Picker -->
-                                    <div class="weekday-picker">
-                                        <div v-for="(weekday, index) in weekdays" :key="index">
-                                            <label class="form-check-label" :for="weekday.id">
-                                                {{ $t(weekday.langKey) }}
-                                            </label>
-                                            <div class="form-check-inline">
-                                                <input
-                                                    :id="weekday.id"
-                                                    v-model="maintenance.weekdays"
-                                                    type="checkbox"
-                                                    :value="weekday.value"
-                                                    class="form-check-input"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </template>
-
-                            <!-- Recurring - Day of month -->
-                            <template v-if="maintenance.strategy === 'recurring-day-of-month'">
-                                <div class="my-3">
-                                    <label for="interval-day" class="form-label">
-                                        {{ $t("dayOfMonth") }}
-                                    </label>
-
-                                    <!-- Day Picker -->
-                                    <div class="day-picker">
-                                        <div v-for="index in 31" :key="index">
-                                            <label class="form-check-label" :for="'day' + index">{{ index }}</label>
-                                            <div class="form-check-inline">
-                                                <input
-                                                    :id="'day' + index"
-                                                    v-model="maintenance.daysOfMonth"
-                                                    type="checkbox"
-                                                    :value="index"
-                                                    class="form-check-input"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="mt-3 mb-2">{{ $t("lastDay") }}</div>
-
-                                    <div v-for="(lastDay, index) in lastDays" :key="index" class="form-check">
-                                        <input
-                                            :id="lastDay.langKey"
-                                            v-model="maintenance.daysOfMonth"
-                                            type="checkbox"
-                                            :value="lastDay.value"
-                                            class="form-check-input"
+                                <div class="row">
+                                    <div class="col">
+                                        <div class="mb-2">{{ $t("startDateTime") }}</div>
+                                        <!-- 24-hour, d.M.yyyy, whatever the browser locale; model stays yyyy-MM-ddTHH:mm -->
+                                        <Datepicker
+                                            v-model="maintenance.dateRange[0]"
+                                            :dark="$root.isDark"
+                                            format="d.M.yyyy HH:mm"
+                                            model-type="yyyy-MM-dd'T'HH:mm"
+                                            :is-24="true"
+                                            text-input
+                                            :required="maintenance.strategy === 'single'"
                                         />
-                                        <label class="form-check-label" :for="lastDay.langKey">
-                                            {{ $t(lastDay.langKey) }}
-                                        </label>
+                                    </div>
+
+                                    <div class="col">
+                                        <div class="mb-2">{{ $t("endDateTime") }}</div>
+                                        <!-- 24-hour, d.M.yyyy, whatever the browser locale; model stays yyyy-MM-ddTHH:mm -->
+                                        <Datepicker
+                                            v-model="maintenance.dateRange[1]"
+                                            :dark="$root.isDark"
+                                            format="d.M.yyyy HH:mm"
+                                            model-type="yyyy-MM-dd'T'HH:mm"
+                                            :is-24="true"
+                                            text-input
+                                            :required="maintenance.strategy === 'single'"
+                                        />
                                     </div>
                                 </div>
-                            </template>
+                            </div>
+                        </template>
 
-                            <template
-                                v-if="
-                                    maintenance.strategy === 'recurring-interval' ||
-                                    maintenance.strategy === 'recurring-weekday' ||
-                                    maintenance.strategy === 'recurring-day-of-month'
-                                "
-                            >
-                                <!-- Maintenance Time Window of a Day -->
-                                <div class="my-3">
-                                    <label class="form-label">{{ $t("Maintenance Time Window of a Day") }}</label>
-                                    <Datepicker
-                                        v-model="maintenance.timeRange"
-                                        :dark="$root.isDark"
-                                        timePicker
-                                        disableTimeRangeValidation
-                                        range
-                                    />
+                        <template v-if="maintenance.strategy === 'single'">
+                            <div class="my-3">
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm"
+                                        :class="currentDurationMinutes === 15 ? 'btn-primary' : 'btn-outline-primary'"
+                                        :disabled="currentDurationMinutes === 15"
+                                        @click="setQuickDuration(15)"
+                                    >
+                                        {{ $t("minuteShort", 15) }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm"
+                                        :class="currentDurationMinutes === 30 ? 'btn-primary' : 'btn-outline-primary'"
+                                        :disabled="currentDurationMinutes === 30"
+                                        @click="setQuickDuration(30)"
+                                    >
+                                        {{ $t("minuteShort", 30) }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm"
+                                        :class="currentDurationMinutes === 60 ? 'btn-primary' : 'btn-outline-primary'"
+                                        :disabled="currentDurationMinutes === 60"
+                                        @click="setQuickDuration(60)"
+                                    >
+                                        {{ $t("hours", 1) }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm"
+                                        :class="currentDurationMinutes === 120 ? 'btn-primary' : 'btn-outline-primary'"
+                                        :disabled="currentDurationMinutes === 120"
+                                        @click="setQuickDuration(120)"
+                                    >
+                                        {{ $t("hours", 2) }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm"
+                                        :class="currentDurationMinutes === 240 ? 'btn-primary' : 'btn-outline-primary'"
+                                        :disabled="currentDurationMinutes === 240"
+                                        @click="setQuickDuration(240)"
+                                    >
+                                        {{ $t("hours", 4) }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm"
+                                        :class="currentDurationMinutes === 480 ? 'btn-primary' : 'btn-outline-primary'"
+                                        :disabled="currentDurationMinutes === 480"
+                                        @click="setQuickDuration(480)"
+                                    >
+                                        {{ $t("hours", 8) }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm"
+                                        :class="currentDurationMinutes === 720 ? 'btn-primary' : 'btn-outline-primary'"
+                                        :disabled="currentDurationMinutes === 720"
+                                        @click="setQuickDuration(720)"
+                                    >
+                                        {{ $t("hours", 12) }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm"
+                                        :class="currentDurationMinutes === 1440 ? 'btn-primary' : 'btn-outline-primary'"
+                                        :disabled="currentDurationMinutes === 1440"
+                                        @click="setQuickDuration(1440)"
+                                    >
+                                        {{ $t("hours", 24) }}
+                                    </button>
                                 </div>
-                            </template>
-
-                            <template
-                                v-if="
-                                    maintenance.strategy === 'recurring-interval' ||
-                                    maintenance.strategy === 'recurring-weekday' ||
-                                    maintenance.strategy === 'recurring-day-of-month' ||
-                                    maintenance.strategy === 'cron' ||
-                                    maintenance.strategy === 'single'
-                                "
-                            >
-                                <!-- Timezone -->
-                                <div class="mb-4">
-                                    <label for="timezone" class="form-label">
-                                        {{ $t("Timezone") }}
-                                    </label>
-                                    <select id="timezone" v-model="maintenance.timezoneOption" class="form-select">
-                                        <option value="SAME_AS_SERVER">{{ $t("sameAsServerTimezone") }}</option>
-                                        <option value="UTC">UTC</option>
-                                        <option
-                                            v-for="(timezone, index) in timezoneList"
-                                            :key="index"
-                                            :value="timezone.value"
-                                        >
-                                            {{ timezone.name }}
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <!-- Date Range -->
-                                <div class="my-3">
-                                    <label v-if="maintenance.strategy !== 'single'" class="form-label">
-                                        {{ $t("Effective Date Range") }}
-                                    </label>
-
-                                    <div class="row">
-                                        <div class="col">
-                                            <div class="mb-2">{{ $t("startDateTime") }}</div>
-                                            <input
-                                                v-model="maintenance.dateRange[0]"
-                                                type="datetime-local"
-                                                max="9999-12-31T23:59"
-                                                class="form-control"
-                                                :required="maintenance.strategy === 'single'"
-                                            />
-                                        </div>
-
-                                        <div class="col">
-                                            <div class="mb-2">{{ $t("endDateTime") }}</div>
-                                            <input
-                                                v-model="maintenance.dateRange[1]"
-                                                type="datetime-local"
-                                                max="9999-12-31T23:59"
-                                                class="form-control"
-                                                :required="maintenance.strategy === 'single'"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </template>
-
-                            <template v-if="maintenance.strategy === 'single'">
-                                <div class="my-3">
-                                    <div class="d-flex gap-2 flex-wrap">
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm"
-                                            :class="
-                                                currentDurationMinutes === 15 ? 'btn-primary' : 'btn-outline-primary'
-                                            "
-                                            :disabled="currentDurationMinutes === 15"
-                                            @click="setQuickDuration(15)"
-                                        >
-                                            {{ $t("minuteShort", 15) }}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm"
-                                            :class="
-                                                currentDurationMinutes === 30 ? 'btn-primary' : 'btn-outline-primary'
-                                            "
-                                            :disabled="currentDurationMinutes === 30"
-                                            @click="setQuickDuration(30)"
-                                        >
-                                            {{ $t("minuteShort", 30) }}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm"
-                                            :class="
-                                                currentDurationMinutes === 60 ? 'btn-primary' : 'btn-outline-primary'
-                                            "
-                                            :disabled="currentDurationMinutes === 60"
-                                            @click="setQuickDuration(60)"
-                                        >
-                                            {{ $t("hours", 1) }}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm"
-                                            :class="
-                                                currentDurationMinutes === 120 ? 'btn-primary' : 'btn-outline-primary'
-                                            "
-                                            :disabled="currentDurationMinutes === 120"
-                                            @click="setQuickDuration(120)"
-                                        >
-                                            {{ $t("hours", 2) }}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm"
-                                            :class="
-                                                currentDurationMinutes === 240 ? 'btn-primary' : 'btn-outline-primary'
-                                            "
-                                            :disabled="currentDurationMinutes === 240"
-                                            @click="setQuickDuration(240)"
-                                        >
-                                            {{ $t("hours", 4) }}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm"
-                                            :class="
-                                                currentDurationMinutes === 480 ? 'btn-primary' : 'btn-outline-primary'
-                                            "
-                                            :disabled="currentDurationMinutes === 480"
-                                            @click="setQuickDuration(480)"
-                                        >
-                                            {{ $t("hours", 8) }}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm"
-                                            :class="
-                                                currentDurationMinutes === 720 ? 'btn-primary' : 'btn-outline-primary'
-                                            "
-                                            :disabled="currentDurationMinutes === 720"
-                                            @click="setQuickDuration(720)"
-                                        >
-                                            {{ $t("hours", 12) }}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm"
-                                            :class="
-                                                currentDurationMinutes === 1440 ? 'btn-primary' : 'btn-outline-primary'
-                                            "
-                                            :disabled="currentDurationMinutes === 1440"
-                                            @click="setQuickDuration(1440)"
-                                        >
-                                            {{ $t("hours", 24) }}
-                                        </button>
-                                    </div>
-                                    <div class="form-text">{{ $t("Sets end time based on start time") }}</div>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-
-                    <div class="fixed-bottom-bar p-3">
-                        <button id="monitor-submit-btn" class="btn btn-primary" type="submit" :disabled="processing">
-                            {{ $t("Save") }}
-                        </button>
+                                <div class="form-text">{{ $t("Sets end time based on start time") }}</div>
+                            </div>
+                        </template>
                     </div>
                 </div>
-            </form>
 
-            <Confirm ref="confirmNoMonitors" :yes-text="$t('Yes')" :no-text="$t('No')" @yes="doSubmit">
-                {{ $t("noMonitorsSelectedWarning") }}
-            </Confirm>
-        </div>
-    </transition>
+                <div class="fixed-bottom-bar p-3">
+                    <button id="monitor-submit-btn" class="btn btn-primary" type="submit" :disabled="processing">
+                        {{ $t("Save") }}
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <Confirm ref="confirmNoMonitors" :yes-text="$t('Yes')" :no-text="$t('No')" @yes="doSubmit">
+            {{ $t("noMonitorsSelectedWarning") }}
+        </Confirm>
+    </div>
 </template>
 
 <script>

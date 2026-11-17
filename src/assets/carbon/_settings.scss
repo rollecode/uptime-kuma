@@ -1,0 +1,154 @@
+// Carbon settings: label column with a grey description beside its controls
+
+.carbon-setting,
+.carbon-settings .settings-content :is(.my-4, .mb-4, .mb-3):has(> .form-label):not(.modal *) {
+    display: grid;
+    grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+    column-gap: 40px;
+    padding: 20px 0;
+    margin: 0 !important;
+    border-bottom: 1px solid var(--c-line);
+}
+
+.carbon-settings .settings-content :is(.my-4, .mb-4, .mb-3):has(> .form-label):not(.modal *) {
+    > * {
+        grid-column: 2;
+    }
+
+    > .form-label {
+        grid-row: 1;
+        grid-column: 1;
+    }
+
+    > .form-text {
+        grid-row: 2;
+        grid-column: 1;
+    }
+
+    > :not(.form-label, .form-text) {
+        max-width: 480px;
+    }
+}
+
+.carbon-setting-label {
+    // First text line level with a 28px control beside it
+    padding-top: 4px;
+
+    h3 {
+        margin: 0;
+        font-size: 14px;
+        line-height: 20px;
+        font-weight: 500;
+    }
+
+    p {
+        margin: 4px 0 0;
+        font-size: 12px;
+        line-height: 18px;
+        color: var(--c-muted);
+    }
+}
+
+.carbon-setting-control {
+    min-width: 0;
+    max-width: 520px;
+}
+
+.carbon-setting-save {
+    margin-top: 16px;
+}
+
+// One left edge for everything in a settings pane
+.carbon-settings .settings-content {
+    :is(.ms-2, .ms-4, .mx-lg-4, .ms-lg-4, .mx-3) {
+        margin-left: 0 !important;
+    }
+}
+
+.carbon-channel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--c-line);
+
+    &:last-of-type {
+        margin-bottom: 12px;
+    }
+
+    .name {
+        font-weight: 500;
+    }
+
+    .type {
+        color: var(--c-muted);
+    }
+
+    .carbon-quiet:first-of-type {
+        margin-left: auto;
+    }
+}
+
+.carbon-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.carbon-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 28px;
+    padding: 0 6px 0 12px;
+    border-radius: var(--c-radius);
+    background-color: var(--c-fill);
+
+    button {
+        width: 18px;
+        height: 18px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: none;
+        color: var(--c-muted);
+        line-height: 1;
+
+        &:hover {
+            color: var(--c-fg);
+        }
+    }
+}
+
+.carbon-chip-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    .carbon & .form-control {
+        width: 96px;
+        height: 28px;
+    }
+
+    .carbon-quiet {
+        height: 28px;
+        padding: 0 8px;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .carbon-setting,
+    .carbon-settings .settings-content :is(.my-4, .mb-4, .mb-3):has(> .form-label):not(.modal *) {
+        grid-template-columns: minmax(0, 1fr);
+
+        > * {
+            grid-column: 1 !important;
+            grid-row: auto !important;
+        }
+    }
+
+    .carbon-setting-label {
+        margin-bottom: 12px;
+    }
+}

@@ -1,20 +1,32 @@
 <template>
-    <transition name="slide-fade" appear>
-        <div v-if="monitor">
-            <router-link v-if="group !== ''" :to="monitorURL(monitor.parent)">
-                {{ group }}
-            </router-link>
-            <h1>
-                {{ monitor.name }}
-                <div class="monitor-id">
-                    <div class="hash">#</div>
-                    <div>{{ monitor.id }}</div>
+    <div v-if="monitor" class="carbon-detail">
+        <router-link v-if="group !== ''" :to="monitorURL(monitor.parent)" class="carbon-detail-group">
+            {{ group }}
+        </router-link>
+
+        <div class="carbon-detail-top">
+            <div class="carbon-detail-title">
+                <h1>
+                    {{ monitor.name }}
+                    <span class="monitor-id">#{{ monitor.id }}</span>
+                </h1>
+                <div class="carbon-detail-sub url">
+                    <template v-if="isUrlType">
+                        <a :href="monitor.url" target="_blank" rel="noopener noreferrer">
+                            {{ filterPassword(monitor.url) }}
+                        </a>
+                        ·
+                    </template>
+                    <template v-else-if="target">{{ target }} ·</template>
+                    {{ checkLine }}
                 </div>
-            </h1>
-            <!-- eslint-disable-next-line vue/no-v-html-->
-            <p v-if="monitor.description" v-html="descriptionHTML"></p>
-            <div class="d-flex">
-                <div class="tags">
+                <div v-if="targetDetail" class="carbon-detail-sub">{{ targetDetail }}</div>
+                <div v-if="state.key === 'down' && lastHeartBeat.msg" class="carbon-detail-sub">
+                    {{ lastHeartBeat.msg }}
+                </div>
+                <!-- eslint-disable-next-line vue/no-v-html-->
+                <div v-if="monitor.description" class="carbon-detail-desc" v-html="descriptionHTML"></div>
+                <div v-if="monitor.tags.length > 0" class="tags">
                     <Tag
                         v-for="tag in monitor.tags"
                         :key="tag.id"
@@ -25,315 +37,208 @@
                     />
                 </div>
             </div>
-            <p class="url">
-                <a
-                    v-if="
-                        monitor.type === 'http' ||
-                        monitor.type === 'keyword' ||
-                        monitor.type === 'json-query' ||
-                        monitor.type === 'real-browser' ||
-                        monitor.type === 'websocket-upgrade'
-                    "
-                    :href="monitor.url"
-                    target="_blank"
-                    rel="noopener noreferrer"
+
+            <div class="carbon-actions">
+                <button v-if="monitor.active" type="button" class="carbon-action" @click="pauseDialog">
+                    {{ $t("Pause") }}
+                </button>
+                <button
+                    v-else
+                    type="button"
+                    class="carbon-action"
+                    :disabled="monitor.forceInactive"
+                    @click="resumeMonitor"
                 >
-                    {{ filterPassword(monitor.url) }}
-                </a>
-                <span v-if="monitor.type === 'port'">TCP Port {{ monitor.hostname }}:{{ monitor.port }}</span>
-                <span v-if="monitor.type === 'ping'">Ping: {{ monitor.hostname }}</span>
-                <span v-if="monitor.type === 'globalping'">
-                    <a v-if="monitor.subtype === 'http'" :href="monitor.url" target="_blank" rel="noopener noreferrer">
-                        {{ filterPassword(monitor.url) }}
-                    </a>
-                    <span v-if="monitor.hostname">{{ monitor.hostname }}</span>
-                    <br />
-                    <span>{{ $t("Location") }}:</span>
-                    <span class="keyword">{{ monitor.location }}</span>
-                    <br />
-                    <span v-if="monitor.subtype === 'dns'">
-                        [{{ monitor.dns_resolve_type }}]
-                        <br />
-                        <span>{{ $t("Last Result") }}:</span>
-                        <span class="keyword">{{ monitor.dns_last_result }}</span>
+                    {{ $t("Resume") }}
+                </button>
+                <router-link :to="'/edit/' + monitor.id" class="carbon-action">{{ $t("Edit") }}</router-link>
+                <router-link :to="'/clone/' + monitor.id" class="carbon-action">{{ $t("Clone") }}</router-link>
+                <div class="dropdown">
+                    <button
+                        type="button"
+                        class="carbon-action"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                        :aria-label="$t('More actions')"
+                    >
+                        ···
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <button type="button" class="dropdown-item" @click="clearEventsDialog">
+                                {{ $t("Clear events") }}
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" class="dropdown-item" @click="clearHeartbeatsDialog">
+                                {{ $t("Clear heartbeats") }}
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" class="dropdown-item" @click="deleteDialog">
+                                {{ $t("Delete") }}
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="carbon-facts">
+            <div class="fact">
+                <div class="k">{{ stateFact.label }}</div>
+                <div class="v" :class="stateFact.tone">{{ stateFact.value }}</div>
+                <span class="visually-hidden" data-testid="monitor-status">{{ state.label }}</span>
+            </div>
+            <div class="fact">
+                <div class="k">{{ monitor.type === "push" ? $t("Last ping") : $t("Last check") }}</div>
+                <div class="v">{{ lastCheck }}</div>
+            </div>
+            <template v-if="hasResponseTimes">
+                <div class="fact">
+                    <div class="k">{{ $t("Response now") }}</div>
+                    <div class="v">{{ msText(lastHeartBeat.ping) }}</div>
+                </div>
+                <div class="fact">
+                    <div class="k">{{ $t("Response, avg 24 h") }}</div>
+                    <div class="v">{{ msText($root.avgPingList[monitor.id]) }}</div>
+                </div>
+            </template>
+            <div class="fact">
+                <div class="k">{{ $t("Uptime 24 h") }}</div>
+                <div class="v">{{ uptimeText("24") }}</div>
+            </div>
+            <div class="fact">
+                <div class="k">{{ $t("Uptime 30 d") }}</div>
+                <div class="v">{{ uptimeText("720") }}</div>
+            </div>
+            <div class="fact">
+                <div class="k">{{ $t("Uptime 1 y") }}</div>
+                <div class="v">{{ uptimeText("1y") }}</div>
+            </div>
+            <div v-if="tlsInfo" class="fact">
+                <div class="k">{{ $t("Certificate expires") }}</div>
+                <button type="button" class="v carbon-link" @click="toggleCertInfoBox = !toggleCertInfoBox">
+                    {{ $t("days", tlsInfo.certInfo.daysRemaining) }}
+                    <span v-if="tlsInfo.hostnameMatchMonitorUrl === false" :title="$t('certHostnameMismatch')">⚠</span>
+                </button>
+            </div>
+            <div v-if="domainInfo" class="fact">
+                <div class="k">{{ $t("Domain expires") }}</div>
+                <div class="v">{{ $t("days", domainInfo.daysRemaining) }}</div>
+            </div>
+        </div>
+
+        <div v-if="showCertInfoBox" class="carbon-section">
+            <certificate-info :certInfo="tlsInfo.certInfo" :valid="tlsInfo.valid" />
+        </div>
+
+        <div v-if="monitor.type !== 'group'" class="carbon-strip-bars">
+            <HeartbeatBar size="small" :monitor-id="monitor.id" />
+        </div>
+
+        <!-- Push URL and example -->
+        <div v-if="monitor.type === 'push'" class="carbon-section">
+            <h2>{{ $t("Push URL") }}</h2>
+            <p class="carbon-muted">{{ $t("pushUrlHelp", [interval]) }}</p>
+            <div class="carbon-copy">
+                <input class="form-control" readonly :value="pushURL" :aria-label="$t('Push URL')" @focus="selectAll" />
+                <button type="button" class="btn btn-normal" @click="copy(pushURL, 'url')">
+                    {{ copied === "url" ? $t("Copied") : $t("Copy") }}
+                </button>
+            </div>
+
+            <details class="carbon-disclosure" :open="pushMonitor.showPushExamples">
+                <summary>{{ $t("Show example") }}</summary>
+                <div class="carbon-seg" role="group" :aria-label="$t('Language')">
+                    <button
+                        v-for="(label, key) in pushLanguages"
+                        :key="key"
+                        type="button"
+                        :class="{ 'is-on': pushMonitor.currentExample === key }"
+                        @click="pushMonitor.currentExample = key"
+                    >
+                        {{ label }}
+                    </button>
+                </div>
+                <div class="carbon-code">
+                    <button type="button" class="carbon-code-copy" @click="copy(pushMonitor.code, 'code')">
+                        {{ copied === "code" ? $t("Copied") : $t("Copy") }}
+                    </button>
+                    <prism-editor
+                        v-model="pushMonitor.code"
+                        class="css-editor"
+                        :highlight="pushExampleHighlighter"
+                        readonly
+                    ></prism-editor>
+                </div>
+            </details>
+        </div>
+
+        <!-- Group: its members -->
+        <div v-if="monitor.type === 'group'" class="carbon-section">
+            <h2>{{ $t("In this group") }}</h2>
+            <div v-for="child in children" :key="child.id" class="carbon-event carbon-linkrow">
+                <span class="carbon-dot" :class="childState(child).key" aria-hidden="true"><i /></span>
+                <span class="text">
+                    <router-link :to="monitorURL(child.id)" class="carbon-linkrow-target">{{ child.name }}</router-link>
+                    <span class="sub">
+                        <span :class="`s-${childState(child).key}`">{{ childState(child).label }}</span>
+                        · {{ monitorTypeLabel(child) }}
                     </span>
                 </span>
-                <span v-if="monitor.type === 'keyword'">
-                    <br />
-                    <span>{{ $t("Keyword") }}:</span>
-                    <span class="keyword">{{ monitor.keyword }}</span>
-                    <span v-if="monitor.invertKeyword" alt="Inverted keyword" class="keyword-inverted">↧</span>
-                </span>
-                <span v-if="monitor.type === 'json-query'">
-                    <br />
-                    <span>{{ $t("Json Query") }}:</span>
-                    <span class="keyword">{{ monitor.jsonPath }}</span>
-                    <br />
-                    <span>{{ $t("Expected Value") }}:</span>
-                    <span class="keyword">{{ monitor.expectedValue }}</span>
-                </span>
-                <span v-if="monitor.type === 'dns'">
-                    [{{ monitor.dns_resolve_type }}] {{ monitor.hostname }}
-                    <br />
-                    <span>{{ $t("Last Result") }}:</span>
-                    <span class="keyword">{{ monitor.dns_last_result }}</span>
-                </span>
-                <span v-if="monitor.type === 'docker'">Docker container: {{ monitor.docker_container }}</span>
-                <span v-if="monitor.type === 'gamedig'">
-                    Gamedig - {{ monitor.game }}: {{ monitor.hostname }}:{{ monitor.port }}
-                </span>
-                <span v-if="monitor.type === 'grpc-keyword'">
-                    gRPC - {{ filterPassword(monitor.grpcUrl) }}
-                    <br />
-                    <span>{{ $t("Keyword") }}:</span>
-                    <span class="keyword">{{ monitor.keyword }}</span>
-                </span>
-                <span v-if="monitor.type === 'mongodb'">{{ filterPassword(monitor.databaseConnectionString) }}</span>
-                <span v-if="monitor.type === 'mqtt'">
-                    MQTT: {{ monitor.hostname }}:{{ monitor.port }}/{{ monitor.mqttTopic }}
-                </span>
-                <span v-if="monitor.type === 'mysql'">{{ filterPassword(monitor.databaseConnectionString) }}</span>
-                <span v-if="monitor.type === 'oracledb'">
-                    {{
-                        $t("oracledbConnectionString", {
-                            connectionString: filterPassword(monitor.databaseConnectionString),
-                        })
-                    }}
-                </span>
-                <span v-if="monitor.type === 'postgres'">{{ filterPassword(monitor.databaseConnectionString) }}</span>
-                <span v-if="monitor.type === 'push'">
-                    Push:
-                    <a :href="pushURL" target="_blank" rel="noopener noreferrer">{{ pushURL }}</a>
-                </span>
-                <span v-if="monitor.type === 'radius'">Radius: {{ filterPassword(monitor.hostname) }}</span>
-                <span v-if="monitor.type === 'redis'">{{ filterPassword(monitor.databaseConnectionString) }}</span>
-                <span v-if="monitor.type === 'sqlserver'">
-                    SQL Server: {{ filterPassword(monitor.databaseConnectionString) }}
-                </span>
-                <span v-if="monitor.type === 'steam'">
-                    Steam Game Server: {{ monitor.hostname }}:{{ monitor.port }}
-                </span>
-            </p>
-
-            <div class="functions">
-                <div class="btn-group" role="group">
-                    <button v-if="monitor.active" class="btn btn-normal" @click="pauseDialog">
-                        <font-awesome-icon icon="pause" />
-                        {{ $t("Pause") }}
-                    </button>
-                    <button
-                        v-if="!monitor.active"
-                        class="btn btn-primary"
-                        :disabled="monitor.forceInactive"
-                        @click="resumeMonitor"
-                    >
-                        <font-awesome-icon icon="play" />
-                        {{ $t("Resume") }}
-                    </button>
-                    <router-link :to="'/edit/' + monitor.id" class="btn btn-normal">
-                        <font-awesome-icon icon="edit" />
-                        {{ $t("Edit") }}
-                    </router-link>
-                    <router-link :to="'/clone/' + monitor.id" class="btn btn-normal">
-                        <font-awesome-icon icon="clone" />
-                        {{ $t("Clone") }}
-                    </router-link>
-                    <button class="btn btn-normal text-danger" @click="deleteDialog">
-                        <font-awesome-icon icon="trash" />
-                        {{ $t("Delete") }}
-                    </button>
-                </div>
+                <span class="when">{{ formatUptime($root.uptimeList[`${child.id}_24`]) }}</span>
             </div>
+            <p v-if="children.length === 0" class="carbon-muted">{{ $t("This group has no monitors yet.") }}</p>
+        </div>
 
-            <div class="shadow-box">
-                <div class="row">
-                    <div class="col-md-8">
-                        <HeartbeatBar :monitor-id="monitor.id" />
-                        <span class="word">
-                            {{ $t("checkEverySecond", [monitor.interval]) }} ({{
-                                secondsToHumanReadableFormat(monitor.interval)
-                            }})
-                        </span>
-                    </div>
-                    <div class="col-md-4 text-center">
-                        <span
-                            class="badge rounded-pill"
-                            :class="'bg-' + status.color"
-                            style="font-size: 30px"
-                            data-testid="monitor-status"
-                        >
-                            {{ status.text }}
-                        </span>
-                    </div>
-                </div>
-            </div>
+        <!-- Response times -->
+        <div v-else-if="hasResponseTimes" class="carbon-card">
+            <PingChart :monitor-id="monitor.id" />
+        </div>
+        <p v-else class="carbon-muted carbon-section">{{ $t("noResponseTimes") }}</p>
 
-            <!-- Push Examples -->
-            <div v-if="monitor.type === 'push'" class="shadow-box big-padding">
-                <a href="#" @click="pushMonitor.showPushExamples = !pushMonitor.showPushExamples">
-                    {{ $t("pushViewCode") }}
-                </a>
+        <table v-if="monitor.type !== 'group'" class="carbon-table">
+            <thead>
+                <tr>
+                    <th>{{ $t("Time period") }}</th>
+                    <th>{{ $t("Availability") }}</th>
+                    <th>{{ $t("Downtime") }}</th>
+                    <th>{{ $t("Incidents") }}</th>
+                    <th>{{ $t("Longest incident") }}</th>
+                    <th>{{ $t("Avg. incident") }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="row in periodRows" :key="row.label">
+                    <td>{{ row.label }}</td>
+                    <td>{{ row.availability }}</td>
+                    <td>{{ row.downtime }}</td>
+                    <td>{{ row.incidents }}</td>
+                    <td>{{ row.longest }}</td>
+                    <td>{{ row.average }}</td>
+                </tr>
+            </tbody>
+        </table>
 
-                <transition name="slide-fade" appear>
-                    <div v-if="pushMonitor.showPushExamples" class="mt-3">
-                        <select id="push-current-example" v-model="pushMonitor.currentExample" class="form-select">
-                            <optgroup :label="$t('programmingLanguages')">
-                                <option value="csharp">C#</option>
-                                <option value="go">Go</option>
-                                <option value="java">Java</option>
-                                <option value="javascript-fetch">JavaScript (fetch)</option>
-                                <option value="php">PHP</option>
-                                <option value="python">Python</option>
-                                <option value="typescript-fetch">TypeScript (fetch)</option>
-                            </optgroup>
-                            <optgroup :label="$t('pushOthers')">
-                                <option value="bash-curl">Bash (curl)</option>
-                                <option value="powershell">PowerShell</option>
-                                <option value="docker">Docker</option>
-                            </optgroup>
-                        </select>
+        <!-- Screenshot -->
+        <div v-if="monitor.type === 'real-browser'" class="carbon-section zoom-cursor">
+            <img
+                :src="screenshotURL"
+                style="width: 100%"
+                alt="screenshot of the website"
+                @click="showScreenshotDialog"
+            />
+            <ScreenshotDialog ref="screenshotDialog" :imageURL="screenshotURL" />
+        </div>
 
-                        <prism-editor
-                            v-model="pushMonitor.code"
-                            class="css-editor mt-3"
-                            :highlight="pushExampleHighlighter"
-                            line-numbers
-                            readonly
-                        ></prism-editor>
-                    </div>
-                </transition>
-            </div>
-
-            <!-- Stats -->
-            <div class="shadow-box big-padding text-center stats">
-                <div class="row">
-                    <div
-                        v-if="monitor.type !== 'group'"
-                        class="col-12 col-sm col row d-flex align-items-center d-sm-block"
-                    >
-                        <h4 class="col-4 col-sm-12">{{ pingTitle() }}</h4>
-                        <p class="col-4 col-sm-12 mb-0 mb-sm-2">({{ $t("Current") }})</p>
-                        <span class="col-4 col-sm-12 num">
-                            <a href="#" @click.prevent="showPingChartBox = !showPingChartBox">
-                                <CountUp :value="ping" />
-                            </a>
-                        </span>
-                    </div>
-                    <div
-                        v-if="monitor.type !== 'group'"
-                        class="col-12 col-sm col row d-flex align-items-center d-sm-block"
-                    >
-                        <h4 class="col-4 col-sm-12">{{ pingTitle(true) }}</h4>
-                        <p class="col-4 col-sm-12 mb-0 mb-sm-2">({{ $t("hours", 24) }})</p>
-                        <span class="col-4 col-sm-12 num">
-                            <CountUp :value="avgPing" />
-                        </span>
-                    </div>
-
-                    <!-- Uptime (24-hour) -->
-                    <div class="col-12 col-sm col row d-flex align-items-center d-sm-block">
-                        <h4 class="col-4 col-sm-12">{{ $t("Uptime") }}</h4>
-                        <p class="col-4 col-sm-12 mb-0 mb-sm-2">({{ $t("hours", 24) }})</p>
-                        <span class="col-4 col-sm-12 num">
-                            <Uptime :monitor="monitor" type="24" />
-                        </span>
-                    </div>
-
-                    <!-- Uptime (30-day) -->
-                    <div class="col-12 col-sm col row d-flex align-items-center d-sm-block">
-                        <h4 class="col-4 col-sm-12">{{ $t("Uptime") }}</h4>
-                        <p class="col-4 col-sm-12 mb-0 mb-sm-2">({{ $t("days", 30) }})</p>
-                        <span class="col-4 col-sm-12 num">
-                            <Uptime :monitor="monitor" type="720" />
-                        </span>
-                    </div>
-
-                    <!-- Uptime (1-year) -->
-                    <div class="col-12 col-sm col row d-flex align-items-center d-sm-block">
-                        <h4 class="col-4 col-sm-12">{{ $t("Uptime") }}</h4>
-                        <p class="col-4 col-sm-12 mb-0 mb-sm-2">({{ $t("years", 1) }})</p>
-                        <span class="col-4 col-sm-12 num">
-                            <Uptime :monitor="monitor" type="1y" />
-                        </span>
-                    </div>
-
-                    <div v-if="tlsInfo" class="col-12 col-sm col row d-flex align-items-center d-sm-block">
-                        <h4 class="col-4 col-sm-12">{{ $t("Cert Exp.") }}</h4>
-                        <p class="col-4 col-sm-12 mb-0 mb-sm-2">
-                            (
-                            <Datetime :value="tlsInfo.certInfo.validTo" date-only />
-                            )
-                        </p>
-                        <span class="col-4 col-sm-12 num">
-                            <a href="#" @click.prevent="toggleCertInfoBox = !toggleCertInfoBox">
-                                {{ $t("days", tlsInfo.certInfo.daysRemaining) }}
-                            </a>
-                            <font-awesome-icon
-                                v-if="tlsInfo.hostnameMatchMonitorUrl === false"
-                                class="cert-info-warn"
-                                icon="exclamation-triangle"
-                                :title="$t('certHostnameMismatch')"
-                            />
-                        </span>
-                    </div>
-                    <div v-if="domainInfo" class="col-12 col-sm col row d-flex align-items-center d-sm-block">
-                        <h4 class="col-4 col-sm-12">{{ $t("labelDomainExpiry") }}</h4>
-                        <p class="col-4 col-sm-12 mb-0 mb-sm-2">
-                            (
-                            <Datetime :value="domainInfo.expiresOn" date-only />
-                            )
-                        </p>
-                        <span class="col-4 col-sm-12 num">
-                            {{ $t("days", domainInfo.daysRemaining) }}
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Cert Info Box -->
-            <transition name="slide-fade" appear>
-                <div v-if="showCertInfoBox" class="shadow-box big-padding text-center">
-                    <div class="row">
-                        <div class="col">
-                            <certificate-info :certInfo="tlsInfo.certInfo" :valid="tlsInfo.valid" />
-                        </div>
-                    </div>
-                </div>
-            </transition>
-
-            <!-- Ping Chart -->
-            <div v-if="showPingChartBox" class="shadow-box big-padding text-center ping-chart-wrapper">
-                <div class="row">
-                    <div class="col">
-                        <PingChart :monitor-id="monitor.id" />
-                    </div>
-                </div>
-            </div>
-
-            <!-- Screenshot -->
-            <div v-if="monitor.type === 'real-browser'" class="shadow-box">
-                <div class="row">
-                    <div class="col-md-6 zoom-cursor">
-                        <img
-                            :src="screenshotURL"
-                            style="width: 100%"
-                            alt="screenshot of the website"
-                            @click="showScreenshotDialog"
-                        />
-                    </div>
-                    <ScreenshotDialog ref="screenshotDialog" :imageURL="screenshotURL" />
-                </div>
-            </div>
-
-            <div class="shadow-box table-shadow-box">
-                <div class="dropdown dropdown-clear-data">
-                    <button
-                        class="btn btn-sm btn-outline-danger dropdown-toggle"
-                        type="button"
-                        data-bs-toggle="dropdown"
-                    >
-                        <font-awesome-icon icon="trash" />
-                        {{ $t("Clear Data") }}
+        <!-- Events -->
+        <div class="carbon-section">
+            <div class="carbon-section-head">
+                <h2>{{ $t("Events") }}</h2>
+                <div class="dropdown">
+                    <button type="button" class="carbon-quiet" data-bs-toggle="dropdown" aria-expanded="false">
+                        {{ $t("Clear data") }}
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li>
@@ -348,113 +253,112 @@
                         </li>
                     </ul>
                 </div>
-                <table class="table table-borderless table-hover">
-                    <thead>
-                        <tr>
-                            <th>{{ $t("Status") }}</th>
-                            <th>{{ $t("DateTime") }}</th>
-                            <th>{{ $t("Message") }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="(beat, index) in displayedRecords" :key="index" style="padding: 10px">
-                            <td><Status :status="beat.status" /></td>
-                            <td :class="{ 'border-0': !beat.msg }">
-                                <Datetime :value="beat.time" />
-                            </td>
-                            <td class="border-0">{{ beat.msg }}</td>
-                        </tr>
-
-                        <tr v-if="importantHeartBeatListLength === 0">
-                            <td colspan="3">
-                                {{ $t("No important events") }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div class="d-flex justify-content-center kuma_pagination">
-                    <pagination
-                        v-model="page"
-                        :records="importantHeartBeatListLength"
-                        :per-page="perPage"
-                        :options="paginationConfig"
-                    />
-                </div>
             </div>
 
-            <Confirm ref="confirmPause" :yes-text="$t('Yes')" :no-text="$t('No')" @yes="pauseMonitor">
-                {{ $t("pauseMonitorMsg") }}
-            </Confirm>
+            <div v-for="(beat, index) in displayedRecords" :key="index" class="carbon-event">
+                <span class="carbon-dot" :class="statusKey(beat.status)" aria-hidden="true"><i /></span>
+                <span class="text">
+                    {{ beat.msg || statusWord(beat.status) }}
+                    <span class="sub">{{ statusWord(beat.status) }}</span>
+                </span>
+                <span class="when" :title="$root.datetime(beat.time)">{{ shortTime(beat.time, true) }}</span>
+            </div>
 
-            <Confirm
-                ref="confirmDelete"
-                btn-style="btn-danger"
-                :yes-text="$t('Yes')"
-                :no-text="$t('No')"
-                @yes="deleteMonitor"
+            <EmptyState
+                v-if="importantHeartBeatListLength === 0"
+                illustration="hourglass"
+                :title="$t('Nothing has happened yet')"
             >
-                <div v-if="monitor && monitor.type === 'group'">
-                    <div>{{ $t("deleteGroupMsg") }}</div>
-                    <div v-if="hasChildren" class="form-check">
-                        <input
-                            id="delete-children-checkbox"
-                            v-model="deleteChildrenMonitors"
-                            class="form-check-input"
-                            type="checkbox"
-                        />
-                        <label class="form-check-label" for="delete-children-checkbox">
-                            {{ $t("deleteChildrenMonitors", childrenCount) }}
-                        </label>
-                    </div>
-                </div>
-                <div v-else>
-                    {{ $t("deleteMonitorMsg") }}
-                </div>
-            </Confirm>
+                {{ $t("eventsEmptyHelp") }}
+            </EmptyState>
 
-            <Confirm
-                ref="confirmClearEvents"
-                btn-style="btn-danger"
-                :yes-text="$t('Yes')"
-                :no-text="$t('No')"
-                @yes="clearEvents"
-            >
-                {{ $t("clearEventsMsg") }}
-            </Confirm>
-
-            <Confirm
-                ref="confirmClearHeartbeats"
-                btn-style="btn-danger"
-                :yes-text="$t('Yes')"
-                :no-text="$t('No')"
-                @yes="clearHeartbeats"
-            >
-                {{ $t("clearHeartbeatsMsg") }}
-            </Confirm>
+            <div v-if="importantHeartBeatListLength > perPage" class="kuma_pagination">
+                <pagination
+                    v-model="page"
+                    :records="importantHeartBeatListLength"
+                    :per-page="perPage"
+                    :options="paginationConfig"
+                />
+            </div>
         </div>
-    </transition>
+
+        <Confirm ref="confirmPause" :yes-text="$t('Yes')" :no-text="$t('No')" @yes="pauseMonitor">
+            {{ $t("pauseMonitorMsg") }}
+        </Confirm>
+
+        <Confirm
+            ref="confirmDelete"
+            btn-style="btn-danger"
+            :yes-text="$t('Yes')"
+            :no-text="$t('No')"
+            @yes="deleteMonitor"
+        >
+            <div v-if="monitor && monitor.type === 'group'">
+                <div>{{ $t("deleteGroupMsg") }}</div>
+                <div v-if="hasChildren" class="form-check">
+                    <input
+                        id="delete-children-checkbox"
+                        v-model="deleteChildrenMonitors"
+                        class="form-check-input"
+                        type="checkbox"
+                    />
+                    <label class="form-check-label" for="delete-children-checkbox">
+                        {{ $t("deleteChildrenMonitors", childrenCount) }}
+                    </label>
+                </div>
+            </div>
+            <div v-else>
+                {{ $t("deleteMonitorMsg") }}
+            </div>
+        </Confirm>
+
+        <Confirm
+            ref="confirmClearEvents"
+            btn-style="btn-danger"
+            :yes-text="$t('Yes')"
+            :no-text="$t('No')"
+            @yes="clearEvents"
+        >
+            {{ $t("clearEventsMsg") }}
+        </Confirm>
+
+        <Confirm
+            ref="confirmClearHeartbeats"
+            btn-style="btn-danger"
+            :yes-text="$t('Yes')"
+            :no-text="$t('No')"
+            @yes="clearHeartbeats"
+        >
+            {{ $t("clearHeartbeatsMsg") }}
+        </Confirm>
+    </div>
 </template>
 
 <script>
 import { defineAsyncComponent } from "vue";
+import dayjs from "dayjs";
 import { useToast } from "vue-toastification";
 const toast = useToast();
 import Confirm from "../components/Confirm.vue";
 import HeartbeatBar from "../components/HeartbeatBar.vue";
-import Status from "../components/Status.vue";
-import Datetime from "../components/Datetime.vue";
-import CountUp from "../components/CountUp.vue";
-import Uptime from "../components/Uptime.vue";
+import EmptyState from "../components/EmptyState.vue";
 import Pagination from "v-pagination-3";
 const PingChart = defineAsyncComponent(() => import("../components/PingChart.vue"));
 import Tag from "../components/Tag.vue";
 import CertificateInfo from "../components/CertificateInfo.vue";
-import { getMonitorRelativeURL } from "../util.ts";
+import { getMonitorRelativeURL, UP, DOWN, PENDING, MAINTENANCE } from "../util.ts";
 import { URL } from "whatwg-url";
 import DOMPurify from "dompurify";
 import { marked } from "marked";
-import { getResBaseURL, timeDurationFormatter } from "../util-frontend";
+import {
+    getResBaseURL,
+    formatUptime,
+    monitorState,
+    monitorTypeLabel,
+    shortDuration,
+    shortInterval,
+    shortTime,
+} from "../util-frontend";
 import { highlight, languages } from "prismjs/components/prism-core";
 import "prismjs/components/prism-clike";
 import "prismjs/components/prism-javascript";
@@ -463,14 +367,15 @@ import { PrismEditor } from "vue-prism-editor";
 import "vue-prism-editor/dist/prismeditor.min.css";
 import ScreenshotDialog from "../components/ScreenshotDialog.vue";
 
+const HOUR = 3600;
+const DAY = 24 * HOUR;
+const URL_TYPES = ["http", "keyword", "json-query", "real-browser", "websocket-upgrade"];
+
 export default {
     components: {
-        Uptime,
-        CountUp,
-        Datetime,
         HeartbeatBar,
         Confirm,
-        Status,
+        EmptyState,
         Pagination,
         PingChart,
         Tag,
@@ -481,10 +386,14 @@ export default {
     data() {
         return {
             page: 1,
-            perPage: 25,
+            perPage: 10,
             heartBeatList: [],
             toggleCertInfoBox: false,
-            showPingChartBox: true,
+            now: Date.now(),
+            ticker: null,
+            copied: null,
+            incidentBeats: [],
+            weekAvailability: null,
             paginationConfig: {
                 hideCount: true,
                 chunksNavigation: "scroll",
@@ -494,7 +403,7 @@ export default {
             displayedRecords: [],
             pushMonitor: {
                 showPushExamples: false,
-                currentExample: "javascript-fetch",
+                currentExample: "bash-curl",
                 code: "",
             },
             deleteChildrenMonitors: false,
@@ -543,30 +452,6 @@ export default {
             };
         },
 
-        ping() {
-            if (this.lastHeartBeat.ping || this.lastHeartBeat.ping === 0) {
-                return this.lastHeartBeat.ping;
-            }
-
-            return this.$t("notAvailableShort");
-        },
-
-        avgPing() {
-            if (this.$root.avgPingList[this.monitor.id] || this.$root.avgPingList[this.monitor.id] === 0) {
-                return this.$root.avgPingList[this.monitor.id];
-            }
-
-            return this.$t("notAvailableShort");
-        },
-
-        status() {
-            if (this.$root.statusList[this.monitor.id]) {
-                return this.$root.statusList[this.monitor.id];
-            }
-
-            return {};
-        },
-
         tlsInfo() {
             // Add: this.$root.tlsInfoList[this.monitor.id].certInfo
             // Fix: TypeError: Cannot read properties of undefined (reading 'validTo')
@@ -598,6 +483,216 @@ export default {
             return getResBaseURL() + this.monitor.screenshot + "?time=" + this.cacheTime;
         },
 
+        isUrlType() {
+            return URL_TYPES.includes(this.monitor.type);
+        },
+
+        /**
+         * What is checked, for types that are not a plain URL
+         * @returns {string} Host, address or connection
+         */
+        target() {
+            const m = this.monitor;
+            switch (m.type) {
+                case "port":
+                case "steam":
+                    return `${m.hostname}:${m.port}`;
+                case "gamedig":
+                    return `${m.game}: ${m.hostname}:${m.port}`;
+                case "dns":
+                    return `[${m.dns_resolve_type}] ${m.hostname}`;
+                case "docker":
+                    return m.docker_container;
+                case "grpc-keyword":
+                    return this.filterPassword(m.grpcUrl);
+                case "mqtt":
+                    return `${m.hostname}:${m.port}/${m.mqttTopic}`;
+                case "radius":
+                    return this.filterPassword(m.hostname);
+                case "oracledb":
+                    return this.$t("oracledbConnectionString", {
+                        connectionString: this.filterPassword(m.databaseConnectionString),
+                    });
+                case "mongodb":
+                case "mysql":
+                case "postgres":
+                case "redis":
+                case "sqlserver":
+                    return this.filterPassword(m.databaseConnectionString);
+                case "globalping":
+                    return m.subtype === "http" ? this.filterPassword(m.url) : m.hostname;
+                case "push":
+                case "group":
+                    return "";
+                default:
+                    return m.hostname ?? "";
+            }
+        },
+
+        /**
+         * Second grey line: keyword, query or last DNS result
+         * @returns {string} Detail, or empty
+         */
+        targetDetail() {
+            const m = this.monitor;
+            const parts = [];
+            if (m.type === "keyword" || m.type === "grpc-keyword") {
+                parts.push(`${this.$t("Keyword")}: ${m.keyword}`);
+                if (m.invertKeyword) {
+                    parts.push(this.$t("Invert Keyword"));
+                }
+            }
+            if (m.type === "json-query") {
+                parts.push(`${this.$t("Json Query")}: ${m.jsonPath}`);
+                parts.push(`${this.$t("Expected Value")}: ${m.expectedValue}`);
+            }
+            if (m.type === "globalping") {
+                parts.push(`${this.$t("Location")}: ${m.location}`);
+            }
+            if (m.type === "dns" || (m.type === "globalping" && m.subtype === "dns")) {
+                parts.push(`${this.$t("Last Result")}: ${m.dns_last_result}`);
+            }
+            return parts.join(" · ");
+        },
+
+        interval() {
+            return shortInterval(this.monitor.interval);
+        },
+
+        checkLine() {
+            if (this.monitor.type === "group") {
+                return this.$t("groupOfMonitors", [this.children.length]);
+            }
+            return `${monitorTypeLabel(this.monitor)} · ${this.$t("everyInterval", [this.interval])}`;
+        },
+
+        state() {
+            return monitorState(this.monitor, this.$root.lastHeartbeatList[this.monitor.id], this.$t);
+        },
+
+        /**
+         * First fact: how long the monitor has been in its state, or the state itself
+         * @returns {{label: string, value: string, tone: string}} Fact
+         */
+        stateFact() {
+            const since = this.$root.statusSince[this.monitor.id];
+            const labels = {
+                up: "Currently up for",
+                down: "Currently down for",
+                pending: "Pending for",
+                maintenance: "In maintenance for",
+            };
+            // Only the value carries the status colour; paused reads as amber like pending
+            const tone =
+                { up: "s-up", down: "s-down", pending: "s-pending", maintenance: "s-maintenance", paused: "s-pending" }[
+                    this.state.key
+                ] ?? "";
+            if (since && labels[this.state.key]) {
+                return {
+                    label: this.$t(labels[this.state.key]),
+                    value: shortDuration((this.now - dayjs.utc(since)) / 1000),
+                    tone,
+                };
+            }
+            return { label: this.$t("Status"), value: this.state.label, tone };
+        },
+
+        lastCheck() {
+            if (!this.lastHeartBeat.time) {
+                return "—";
+            }
+            const seconds = Math.max(0, Math.round((this.now - dayjs.utc(this.lastHeartBeat.time)) / 1000));
+            return this.$t("time ago", [seconds < 60 ? `${seconds} s` : shortDuration(seconds)]);
+        },
+
+        /**
+         * Whether this kind of monitor measures a response time at all
+         * @returns {boolean} Has response times
+         */
+        hasResponseTimes() {
+            return this.monitor.type !== "push" && this.monitor.type !== "group";
+        },
+
+        children() {
+            return Object.values(this.$root.monitorList)
+                .filter((m) => m.parent === this.monitor.id)
+                .sort((a, b) => a.name.localeCompare(b.name));
+        },
+
+        pushLanguages() {
+            return {
+                "bash-curl": "curl",
+                python: "Python",
+                "javascript-fetch": "Node",
+                "typescript-fetch": "TypeScript",
+                powershell: "PowerShell",
+                go: "Go",
+                php: "PHP",
+                java: "Java",
+                csharp: "C#",
+                docker: "Docker",
+            };
+        },
+
+        /**
+         * Down spans from the important heartbeats, oldest first
+         * @returns {Array<{start: number, end: number}>} Spans in milliseconds
+         */
+        incidents() {
+            const spans = [];
+            let start = null;
+            const beats = [...this.incidentBeats].reverse();
+            for (const beat of beats) {
+                const time = dayjs.utc(beat.time).valueOf();
+                if (beat.status === DOWN && start === null) {
+                    start = time;
+                } else if (beat.status !== DOWN && start !== null) {
+                    spans.push({ start, end: time });
+                    start = null;
+                }
+            }
+            if (start !== null) {
+                spans.push({ start, end: this.now });
+            }
+            return spans;
+        },
+
+        /**
+         * Availability and incidents for the last day, week and month
+         * @returns {Array<object>} Table rows
+         */
+        periodRows() {
+            const periods = [
+                {
+                    label: this.$t("Last 24 hours"),
+                    seconds: DAY,
+                    uptime: this.$root.uptimeList[`${this.monitor.id}_24`],
+                },
+                { label: this.$t("Last 7 days"), seconds: 7 * DAY, uptime: this.weekAvailability },
+                {
+                    label: this.$t("Last 30 days"),
+                    seconds: 30 * DAY,
+                    uptime: this.$root.uptimeList[`${this.monitor.id}_720`],
+                },
+            ];
+            return periods.map((period) => {
+                const from = this.now - period.seconds * 1000;
+                const durations = this.incidents
+                    .filter((span) => span.end > from)
+                    .map((span) => (span.end - Math.max(span.start, from)) / 1000);
+                const total = durations.reduce((a, b) => a + b, 0);
+                const none = durations.length === 0;
+                return {
+                    label: period.label,
+                    availability: formatUptime(period.uptime),
+                    downtime: none ? this.$t("none") : shortDuration(total),
+                    incidents: durations.length,
+                    longest: none ? "—" : shortDuration(Math.max(...durations)),
+                    average: none ? "—" : shortDuration(total / durations.length),
+                };
+            });
+        },
+
         descriptionHTML() {
             if (this.monitor.description != null) {
                 return DOMPurify.sanitize(marked(this.monitor.description));
@@ -616,8 +711,11 @@ export default {
             this.fetchMonitor(id);
         },
 
-        monitor(to) {
+        monitor(to, from) {
             this.getImportantHeartbeatListLength();
+            if (to && !from) {
+                this.loadIncidents();
+            }
         },
         "monitor.type"() {
             if (this.monitor && this.monitor.type === "push") {
@@ -632,6 +730,11 @@ export default {
     mounted() {
         this.getImportantHeartbeatListLength();
         this.fetchMonitor(this.$route.params.id);
+        this.$root.loadStatusSince();
+        this.loadIncidents();
+        this.ticker = setInterval(() => {
+            this.now = Date.now();
+        }, 10000);
 
         this.$root.emitter.on("newImportantHeartbeat", this.onNewImportantHeartbeat);
 
@@ -645,6 +748,7 @@ export default {
 
     beforeUnmount() {
         this.$root.emitter.off("newImportantHeartbeat", this.onNewImportantHeartbeat);
+        clearInterval(this.ticker);
     },
 
     methods: {
@@ -795,24 +899,6 @@ export default {
         },
 
         /**
-         * Return the correct title for the ping stat
-         * @param {boolean} average Is the statistic an average?
-         * @returns {string} Title formatted dependent on monitor type
-         */
-        pingTitle(average = false) {
-            let translationPrefix = "";
-            if (average) {
-                translationPrefix = "Avg. ";
-            }
-
-            if (this.monitor.type === "http" || this.monitor.type === "keyword" || this.monitor.type === "json-query") {
-                return this.$t(translationPrefix + "Response");
-            }
-
-            return this.$t(translationPrefix + "Ping");
-        },
-
-        /**
          * Get URL of monitor
          * @param {number} id ID of monitor
          * @returns {string} Relative URL of monitor
@@ -907,191 +993,81 @@ export default {
             });
         },
 
-        secondsToHumanReadableFormat(seconds) {
-            return timeDurationFormatter.secondsToHumanReadableFormat(seconds);
+        formatUptime,
+        monitorTypeLabel,
+        shortTime,
+
+        msText(value) {
+            return value == null ? "—" : `${Math.round(value)} ms`;
+        },
+
+        uptimeText(period) {
+            if (this.state.key === "wait") {
+                return "—";
+            }
+            return formatUptime(this.$root.uptimeList[`${this.monitor.id}_${period}`]);
+        },
+
+        childState(child) {
+            return monitorState(child, this.$root.lastHeartbeatList[child.id], this.$t);
+        },
+
+        statusKey(status) {
+            return { [UP]: "up", [DOWN]: "down", [PENDING]: "pending", [MAINTENANCE]: "maintenance" }[status] ?? "wait";
+        },
+
+        statusWord(status) {
+            const words = { [UP]: "Up", [DOWN]: "Down", [PENDING]: "Pending", [MAINTENANCE]: "statusMaintenance" };
+            return this.$t(words[status] ?? "Unknown");
+        },
+
+        selectAll(event) {
+            event.target.select();
+        },
+
+        /**
+         * Copy text and say so on the button for a moment
+         * @param {string} text Text to copy
+         * @param {string} what Which button was used
+         * @returns {Promise<void>}
+         */
+        async copy(text, what) {
+            await navigator.clipboard.writeText(text);
+            this.copied = what;
+            setTimeout(() => {
+                this.copied = null;
+            }, 1500);
+        },
+
+        /**
+         * Load the important heartbeats and the 7-day availability for the period table
+         * @returns {void}
+         */
+        loadIncidents() {
+            if (!this.monitor) {
+                return;
+            }
+            const socket = this.$root.getSocket();
+            socket.emit("monitorImportantHeartbeatListPaged", this.monitor.id, 0, 500, (res) => {
+                if (res.ok) {
+                    this.incidentBeats = res.data;
+                }
+            });
+            this.$root.getMonitorChartData(this.monitor.id, 7 * 24, (res) => {
+                if (!res.ok) {
+                    return;
+                }
+                const up = res.data.reduce((sum, point) => sum + point.up, 0);
+                const down = res.data.reduce((sum, point) => sum + point.down, 0);
+                this.weekAvailability = up + down > 0 ? up / (up + down) : null;
+            });
         },
     },
 };
 </script>
 
 <style lang="scss" scoped>
-@import "../assets/vars.scss";
-
 .form-check {
     margin-top: 16px;
-}
-
-@media (max-width: 767px) {
-    .badge {
-        margin-top: 14px;
-    }
-}
-
-@media (max-width: 550px) {
-    .ping-chart-wrapper {
-        padding: 10px !important;
-    }
-
-    .dropdown-clear-data {
-        margin-bottom: 10px;
-    }
-}
-
-@media (max-width: 450px) {
-    .btn {
-        padding-top: 10px;
-        font-size: 0.9em;
-    }
-
-    .btn-group {
-        width: 100%;
-
-        .btn,
-        a.btn {
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            padding-left: 10px;
-            padding-right: 10px;
-        }
-    }
-}
-
-@media (max-width: 400px) {
-    .dropdown-clear-data {
-        button {
-            display: block;
-            padding-top: 4px;
-        }
-    }
-}
-
-.url {
-    color: $primary;
-    margin-bottom: 20px;
-    font-weight: bold;
-
-    a {
-        color: $primary;
-    }
-}
-
-.shadow-box {
-    padding: 20px;
-    margin-top: 25px;
-}
-
-.word {
-    color: $secondary-text;
-    font-size: 14px;
-}
-
-table {
-    font-size: 14px;
-
-    tr {
-        transition: all ease-in-out 0.2ms;
-    }
-}
-
-.stats p {
-    font-size: 13px;
-    color: $secondary-text;
-}
-
-.stats {
-    padding: 10px;
-
-    .col {
-        margin: 20px 0;
-    }
-}
-
-@media (max-width: 550px) {
-    .stats {
-        .col {
-            margin: 10px 0 !important;
-        }
-
-        h4 {
-            font-size: 1.1rem;
-        }
-    }
-}
-
-.keyword {
-    color: black;
-}
-
-.dropdown-clear-data {
-    float: right;
-
-    ul {
-        width: 100%;
-        min-width: unset;
-        padding-left: 0;
-    }
-}
-
-.dark {
-    .keyword {
-        color: $dark-font-color;
-    }
-
-    .keyword-inverted {
-        color: $dark-font-color;
-    }
-
-    .dropdown-clear-data {
-        ul {
-            background-color: $dark-bg;
-            border-color: $dark-bg2;
-            border-width: 2px;
-
-            li button {
-                color: $dark-font-color;
-            }
-
-            li button:hover {
-                background-color: $dark-bg2;
-            }
-        }
-    }
-}
-
-.tags {
-    margin-bottom: 0.5rem;
-    max-width: 95vw;
-}
-
-.tags > div:first-child {
-    margin-left: 0 !important;
-}
-
-.monitor-id {
-    display: inline-flex;
-    font-size: 0.7em;
-    margin-left: 0.3em;
-    color: $secondary-text;
-    flex-direction: row;
-    flex-wrap: nowrap;
-
-    .hash {
-        user-select: none;
-    }
-
-    .dark & {
-        opacity: 0.7;
-    }
-}
-
-.cert-info-warn {
-    margin-left: 4px;
-    opacity: 0.5;
-
-    .dark & {
-        opacity: 0.7;
-    }
 }
 </style>

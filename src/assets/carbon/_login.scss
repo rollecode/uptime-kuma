@@ -1,0 +1,92 @@
+// Carbon sign-in: one centred column, a quiet engraving beside it on wide screens
+
+// Beats the phone padding on .carbon.mobile .carbon-main
+.carbon .carbon-main:has(> .carbon-login) {
+    max-width: none;
+    padding: 0;
+}
+
+.carbon-login {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    place-items: center;
+    min-height: 100dvh;
+    padding: 24px 16px;
+}
+
+.carbon-login-form {
+    width: 100%;
+    max-width: 320px;
+
+    h1 {
+        margin: 28px 0 2px;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+        margin-top: 24px;
+    }
+
+    .form-label {
+        margin-top: 14px;
+    }
+
+    .form-label:first-child {
+        margin-top: 0;
+    }
+
+    .form-check {
+        margin: 16px 0;
+    }
+
+    form .btn-primary {
+        width: 100%;
+    }
+}
+
+.carbon-login-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.carbon-error {
+    margin: 10px 0 0;
+    color: var(--c-down);
+}
+
+.carbon-login-art {
+    display: none;
+    margin: 0;
+    text-align: center;
+
+    img {
+        width: min(100%, 520px);
+        height: auto;
+        opacity: 0.5;
+    }
+
+    figcaption {
+        margin-top: 16px;
+        font-size: 11px;
+        color: var(--c-faint);
+    }
+}
+
+.carbon:not(.dark) .carbon-login-art img {
+    filter: invert(1);
+}
+
+@media (min-width: 1100px) {
+    .carbon-login {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        padding: 24px 64px;
+    }
+
+    .carbon-login-art {
+        display: block;
+    }
+}

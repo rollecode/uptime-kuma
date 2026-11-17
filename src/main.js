@@ -4,6 +4,7 @@ import contenteditable from "vue-contenteditable";
 import Toast from "vue-toastification";
 import "vue-toastification/dist/index.css";
 import App from "./App.vue";
+import "@fontsource-variable/geist";
 import "./assets/app.scss";
 import "./assets/vue-datepicker.scss";
 import { i18n } from "./i18n";

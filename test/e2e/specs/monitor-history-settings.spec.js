@@ -13,8 +13,8 @@ test.beforeEach(async ({ page }) => {
 async function openSettings(page) {
     await page.goto("./settings/monitor-history");
     // Log in only when the session is not restored yet
-    await Promise.race([page.locator("#keepDataPeriodDays").waitFor(), page.getByPlaceholder("Username").waitFor()]);
-    if (await page.getByPlaceholder("Username").isVisible()) {
+    await Promise.race([page.locator("#keepDataPeriodDays").waitFor(), page.getByLabel("Username").waitFor()]);
+    if (await page.getByLabel("Username").isVisible()) {
         await login(page);
     }
     await expect(page.locator("#keepDataPeriodDays")).toBeVisible();
@@ -50,10 +50,10 @@ test.describe("Monitor history settings", () => {
         await page.waitForURL("/dashboard/*");
         const detailsURL = page.url();
         const monitorID = detailsURL.split("/").pop();
-        const pushUrl = await page.locator('a[href*="/api/push/"]').first().getAttribute("href");
+        const pushUrl = await page.getByLabel("Push URL").inputValue();
         await page.request.get(pushUrl);
 
-        await page.goto("./dashboard");
+        await page.goto("./list");
         await expect(page.locator('[aria-label^="Heartbeat history: 1 checks"]')).toBeVisible();
 
         // Clear everything from the settings page
@@ -63,14 +63,14 @@ test.describe("Monitor history settings", () => {
 
         // The monitor no longer has heartbeats
         await page.goto("./dashboard/" + monitorID);
-        await page.goto("./dashboard");
+        await page.goto("./list");
         await expect(page.locator('[aria-label^="Heartbeat history: 0 checks"]')).toBeVisible();
     });
 
     test("shrinks the sqlite database", async ({ page }) => {
         await openSettings(page);
 
-        await page.getByRole("button", { name: /Shrink Database/ }).click();
+        await page.getByRole("button", { name: /Shrink database/ }).click();
 
         await expect(page.locator(".Vue-Toastification__toast").first()).toContainText("Done");
     });

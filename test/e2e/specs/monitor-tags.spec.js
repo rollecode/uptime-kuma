@@ -34,7 +34,7 @@ async function addTaggedMonitor(page, name, tagName) {
  * @returns {Promise<import("@playwright/test").Locator>} Monitor list locator
  */
 async function openDashboard(page) {
-    await page.goto("./dashboard");
+    await page.goto("./list");
     await page.waitForSelector('[data-testid="monitor-list"] .draggable-item');
     return page.getByTestId("monitor-list");
 }
@@ -64,7 +64,7 @@ test.describe("Monitor tags", () => {
             1
         );
 
-        const href = await list.locator("a.item", { hasText: "Tagged Item" }).first().getAttribute("href");
+        const href = await list.locator("a.nm", { hasText: "Tagged Item" }).first().getAttribute("href");
         await page.goto("./edit/" + href.split("/").pop());
         await page.locator(".tag-wrapper .btn-remove").first().click();
         await page.getByTestId("save-button").click();

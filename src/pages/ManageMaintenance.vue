@@ -1,115 +1,99 @@
 <template>
-    <transition name="slide-fade" appear>
-        <div>
-            <h1 class="mb-3">
-                {{ $t("Maintenance") }}
-            </h1>
-
-            <div>
-                <router-link to="/add-maintenance" class="btn btn-primary mb-3">
-                    <font-awesome-icon icon="plus" />
-                    {{ $t("Schedule Maintenance") }}
+    <div class="carbon-page">
+        <div class="carbon-top">
+            <h1>{{ $t("Maintenance") }}</h1>
+            <div class="carbon-tools">
+                <router-link to="/add-maintenance" class="btn btn-primary">
+                    {{ $t("Schedule maintenance") }}
                 </router-link>
             </div>
-
-            <div class="shadow-box">
-                <span
-                    v-if="Object.keys(sortedMaintenanceList).length === 0"
-                    class="d-flex align-items-center justify-content-center my-3"
-                >
-                    {{ $t("No Maintenance") }}
-                </span>
-
-                <div v-for="(item, index) in sortedMaintenanceList" :key="index" class="item" :class="item.status">
-                    <div class="left-part">
-                        <div class="circle"></div>
-                        <div class="info">
-                            <div class="title">{{ item.title }}</div>
-                            <div class="status">
-                                {{ $t("maintenanceStatus-" + item.status) }}
-                            </div>
-
-                            <MaintenanceTime :maintenance="item" />
-                        </div>
-                    </div>
-
-                    <div class="buttons">
-                        <div class="btn-group" role="group">
-                            <button
-                                v-if="item.active"
-                                class="btn btn-normal"
-                                :aria-label="$t('ariaPauseMaintenance')"
-                                @click="pauseDialog(item.id)"
-                            >
-                                <font-awesome-icon icon="pause" />
-                                {{ $t("Pause") }}
-                            </button>
-
-                            <button
-                                v-if="!item.active"
-                                class="btn btn-primary"
-                                :aria-label="$t('ariaResumeMaintenance')"
-                                @click="resumeMaintenance(item.id)"
-                            >
-                                <font-awesome-icon icon="play" />
-                                {{ $t("Resume") }}
-                            </button>
-
-                            <router-link
-                                :to="'/maintenance/clone/' + item.id"
-                                class="btn btn-normal"
-                                :aria-label="$t('ariaCloneMaintenance')"
-                            >
-                                <font-awesome-icon icon="clone" />
-                                {{ $t("Clone") }}
-                            </router-link>
-
-                            <router-link
-                                :to="'/maintenance/edit/' + item.id"
-                                class="btn btn-normal"
-                                :aria-label="$t('ariaEditMaintenance')"
-                            >
-                                <font-awesome-icon icon="edit" />
-                                {{ $t("Edit") }}
-                            </router-link>
-
-                            <button
-                                class="btn btn-normal text-danger"
-                                :aria-label="$t('ariaDeleteMaintenance')"
-                                @click="deleteDialog(item.id)"
-                            >
-                                <font-awesome-icon icon="trash" />
-                                {{ $t("Delete") }}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="text-center mt-3" style="font-size: 13px">
-                <a href="https://github.com/louislam/uptime-kuma/wiki/Maintenance" target="_blank">
-                    {{ $t("Learn More") }}
-                </a>
-            </div>
-
-            <Confirm ref="confirmPause" :yes-text="$t('Yes')" :no-text="$t('No')" @yes="pauseMaintenance">
-                {{ $t("pauseMaintenanceMsg") }}
-            </Confirm>
-
-            <Confirm
-                ref="confirmDelete"
-                btn-style="btn-danger"
-                :yes-text="$t('Yes')"
-                :no-text="$t('No')"
-                @yes="deleteMaintenance"
-            >
-                {{ $t("deleteMaintenanceMsg") }}
-            </Confirm>
         </div>
-    </transition>
+
+        <EmptyState
+            v-if="Object.keys(sortedMaintenanceList).length === 0"
+            illustration="watch"
+            :title="$t('No maintenance scheduled')"
+            class="mt-4"
+        >
+            {{ $t("maintenanceEmptyHelp") }}
+        </EmptyState>
+
+        <div v-else class="mt-3">
+            <div v-for="(item, index) in sortedMaintenanceList" :key="index" class="carbon-event carbon-linkrow item">
+                <span class="carbon-dot" :class="maintenanceDot(item.status)" aria-hidden="true"><i /></span>
+                <span class="text">
+                    <router-link :to="'/maintenance/edit/' + item.id" class="carbon-linkrow-target">
+                        {{ item.title }}
+                    </router-link>
+                    <span class="sub">
+                        {{ $t("maintenanceStatus-" + item.status) }}
+                        <MaintenanceTime :maintenance="item" />
+                    </span>
+                </span>
+                <span class="when">
+                    <button
+                        v-if="item.active"
+                        type="button"
+                        class="carbon-quiet"
+                        :aria-label="$t('ariaPauseMaintenance')"
+                        @click="pauseDialog(item.id)"
+                    >
+                        {{ $t("Pause") }}
+                    </button>
+                    <button
+                        v-else
+                        type="button"
+                        class="carbon-quiet"
+                        :aria-label="$t('ariaResumeMaintenance')"
+                        @click="resumeMaintenance(item.id)"
+                    >
+                        {{ $t("Resume") }}
+                    </button>
+                    <router-link
+                        :to="'/maintenance/clone/' + item.id"
+                        class="carbon-quiet ms-3"
+                        :aria-label="$t('ariaCloneMaintenance')"
+                    >
+                        {{ $t("Clone") }}
+                    </router-link>
+                    <button
+                        type="button"
+                        class="carbon-quiet ms-3"
+                        :aria-label="$t('ariaDeleteMaintenance')"
+                        @click="deleteDialog(item.id)"
+                    >
+                        {{ $t("Delete") }}
+                    </button>
+                </span>
+            </div>
+        </div>
+
+        <a
+            class="carbon-quiet d-inline-block mt-4"
+            href="https://github.com/louislam/uptime-kuma/wiki/Maintenance"
+            target="_blank"
+        >
+            {{ $t("Learn more") }}
+        </a>
+
+        <Confirm ref="confirmPause" :yes-text="$t('Yes')" :no-text="$t('No')" @yes="pauseMaintenance">
+            {{ $t("pauseMaintenanceMsg") }}
+        </Confirm>
+
+        <Confirm
+            ref="confirmDelete"
+            btn-style="btn-danger"
+            :yes-text="$t('Yes')"
+            :no-text="$t('No')"
+            @yes="deleteMaintenance"
+        >
+            {{ $t("deleteMaintenanceMsg") }}
+        </Confirm>
+    </div>
 </template>
 
 <script>
+import EmptyState from "../components/EmptyState.vue";
 import { getResBaseURL } from "../util-frontend";
 import Confirm from "../components/Confirm.vue";
 import MaintenanceTime from "../components/MaintenanceTime.vue";
@@ -118,6 +102,7 @@ export default {
     components: {
         MaintenanceTime,
         Confirm,
+        EmptyState,
     },
     data() {
         return {
@@ -148,6 +133,15 @@ export default {
     },
     mounted() {},
     methods: {
+        /**
+         * Dot colour for a maintenance status
+         * @param {string} status Maintenance status
+         * @returns {string} Key used by .carbon-dot
+         */
+        maintenanceDot(status) {
+            return { "under-maintenance": "maintenance", scheduled: "up" }[status] ?? "wait";
+        },
+
         /**
          * Get the correct URL for the icon
          * @param {string} icon Path for icon
@@ -219,120 +213,3 @@ export default {
     },
 };
 </script>
-
-<style lang="scss" scoped>
-@import "../assets/vars.scss";
-
-.mobile {
-    .item {
-        flex-direction: column;
-        align-items: flex-start;
-        margin-bottom: 20px;
-    }
-}
-
-.item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-    border-radius: 10px;
-    transition: all ease-in-out 0.15s;
-    justify-content: space-between;
-    padding: 10px;
-    min-height: 90px;
-    margin-bottom: 5px;
-
-    &:hover {
-        background-color: $highlight-white;
-    }
-
-    &.under-maintenance {
-        background-color: rgba(23, 71, 245, 0.16);
-
-        &:hover {
-            background-color: rgba(23, 71, 245, 0.3) !important;
-        }
-
-        .circle {
-            background-color: $maintenance;
-        }
-    }
-
-    &.scheduled {
-        .circle {
-            background-color: $primary;
-        }
-    }
-
-    &.inactive {
-        .circle {
-            background-color: $danger;
-        }
-    }
-
-    &.ended {
-        .left-part {
-            opacity: 0.3;
-        }
-
-        .circle {
-            background-color: $dark-font-color;
-        }
-    }
-
-    &.unknown {
-        .circle {
-            background-color: $dark-font-color;
-        }
-    }
-
-    .left-part {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-
-        .circle {
-            width: 25px;
-            height: 25px;
-            border-radius: 50rem;
-        }
-
-        .info {
-            .title {
-                font-weight: bold;
-                font-size: 20px;
-            }
-
-            .status {
-                font-size: 14px;
-            }
-        }
-    }
-
-    .buttons {
-        display: flex;
-        gap: 8px;
-        flex-direction: row-reverse;
-
-        @media (max-width: 550px) {
-            & {
-                width: 100%;
-            }
-
-            .btn-group {
-                margin: 1em 1em 0 1em;
-                width: 100%;
-            }
-        }
-    }
-}
-
-.dark {
-    .item {
-        &:hover {
-            background-color: $dark-bg2;
-        }
-    }
-}
-</style>

@@ -31,6 +31,7 @@ export function initDayjs(): Dayjs {
     dayjs.extend(relativeTime);
     return dayjs;
 }
+import { DOWN, UP, PENDING, MAINTENANCE } from "./util.ts";
 
 /**
  * Returns the offset from UTC in hours for the current locale.
@@ -289,3 +290,132 @@ class TimeDurationFormatter {
 }
 
 export const timeDurationFormatter = new TimeDurationFormatter();
+
+const MINUTE = 60;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+const MONTH = 30 * DAY;
+
+/**
+ * Compact duration with the two largest units, e.g. "4 min", "5h 12m", "7d 2h", "2mo 1d"
+ * @param {number} seconds Duration in seconds
+ * @returns {string} Short duration
+ */
+export function shortDuration(seconds: number): string {
+    const s = Math.max(0, Math.floor(seconds));
+    if (s < HOUR) {
+        return `${Math.max(1, Math.floor(s / MINUTE))} min`;
+    }
+    if (s < DAY) {
+        return `${Math.floor(s / HOUR)}h ${Math.floor((s % HOUR) / MINUTE)}m`;
+    }
+    if (s < MONTH) {
+        return `${Math.floor(s / DAY)}d ${Math.floor((s % DAY) / HOUR)}h`;
+    }
+    return `${Math.floor(s / MONTH)}mo ${Math.floor((s % MONTH) / DAY)}d`;
+}
+
+/**
+ * Check interval in its natural unit, e.g. "30 s", "3 min", "1 h", "2 days"
+ * @param {number} seconds Interval in seconds
+ * @returns {string} Short interval
+ */
+export function shortInterval(seconds: number): string {
+    if (seconds < MINUTE) {
+        return `${seconds} s`;
+    }
+    if (seconds < HOUR) {
+        return `${Math.round(seconds / MINUTE)} min`;
+    }
+    if (seconds < DAY) {
+        return `${Math.round(seconds / HOUR)} h`;
+    }
+    const days = Math.round(seconds / DAY);
+    return days === 1 ? "1 day" : `${days} days`;
+}
+
+// Monitor types named for people; anything else shows its type id
+const MONITOR_TYPE_LABELS: Record<string, string> = {
+    http: "HTTP",
+    keyword: "Keyword",
+    "json-query": "JSON query",
+    ping: "Ping",
+    push: "Heartbeat",
+    dns: "DNS",
+    docker: "Docker",
+    group: "Group",
+    "real-browser": "Browser",
+};
+
+/**
+ * Short name of a monitor's check, e.g. "Keyword" or "TCP 443"
+ * @param {object} monitor Monitor
+ * @param {string} monitor.type Monitor type
+ * @param {number} monitor.port Port, for port monitors
+ * @returns {string} Type label
+ */
+export function monitorTypeLabel(monitor: { type: string; port?: number }): string {
+    if (monitor.type === "port") {
+        // The compact monitor list leaves the port out
+        return monitor.port ? `TCP ${monitor.port}` : "TCP";
+    }
+    return MONITOR_TYPE_LABELS[monitor.type] ?? monitor.type;
+}
+
+/**
+ * Uptime ratio as a percentage, "100%" or "99.98%"
+ * @param {number|null|undefined} value Ratio from 0 to 1
+ * @returns {string} Percentage, or a dash without data
+ */
+export function formatUptime(value: number | null | undefined): string {
+    if (value == null) {
+        return "—";
+    }
+    return value >= 1 ? "100%" : `${(value * 100).toFixed(2)}%`;
+}
+
+/**
+ * A server time as clock time when it is today, day and month before that
+ * @param {string} time UTC time from the server
+ * @param {boolean} withClock Add the clock time to older dates too
+ * @returns {string} Short time
+ */
+export function shortTime(time: string | null | undefined, withClock = false): string {
+    if (!time) {
+        return "";
+    }
+    const local = dayjs.utc(time).local();
+    if (local.isSame(dayjs(), "day")) {
+        return local.format("HH:mm");
+    }
+    return local.format(withClock ? "D.M. HH:mm" : "D.M.");
+}
+
+/**
+ * State of a monitor: a key for its colour and a label for people
+ * @param {object} monitor Monitor
+ * @param {boolean} monitor.active Whether it runs
+ * @param {string} monitor.type Monitor type
+ * @param {object|undefined} beat Its latest heartbeat
+ * @param {Function} t Translate function
+ * @returns {{key: string, label: string}} State
+ */
+export function monitorState(
+    monitor: { active: boolean; type: string },
+    beat: { status: number } | undefined,
+    t: (key: string) => string
+): { key: string; label: string } {
+    if (!monitor.active) {
+        return { key: "paused", label: t("filterActivePaused") };
+    }
+    if (!beat) {
+        return { key: "wait", label: t(monitor.type === "push" ? "statusWaitingPing" : "statusWaitingCheck") };
+    }
+    const states: Record<number, { key: string; label: string }> = {
+        [DOWN]: { key: "down", label: t("Down") },
+        [UP]: { key: "up", label: t("Up") },
+        [PENDING]: { key: "pending", label: t("Pending") },
+        [MAINTENANCE]: { key: "maintenance", label: t("statusMaintenance") },
+    };
+    return states[beat.status] ?? { key: "wait", label: t("Unknown") };
+}

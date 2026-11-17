@@ -1,0 +1,162 @@
+// Carbon overview: finding sentence, status line in text, needs attention and recent events
+
+.carbon-home h1 {
+    margin: 0;
+}
+
+.carbon-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 22px;
+    margin: 22px 0 32px;
+    color: var(--c-muted);
+
+    b {
+        font-weight: 500;
+        color: var(--c-fg);
+    }
+
+    .big {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--c-fg);
+    }
+}
+
+.carbon-home-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 24px;
+}
+
+.carbon-section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+
+    h2 {
+        margin: 0;
+        font-size: 14px;
+        line-height: 20px;
+    }
+}
+
+.carbon-quiet {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--c-muted);
+    font: inherit;
+
+    &:hover {
+        color: var(--c-fg);
+    }
+}
+
+.carbon-calm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 36px 32px 28px;
+    border-radius: 12px;
+    background-color: var(--c-surface);
+    text-align: center;
+
+    img {
+        width: auto;
+        max-width: 100%;
+        height: auto;
+        max-height: 200px;
+        opacity: 0.55;
+    }
+
+    &.is-large img {
+        max-height: 300px;
+    }
+
+    .title,
+    .desc {
+        text-wrap: balance;
+    }
+
+    .title {
+        margin-top: 18px;
+        font-size: 16px;
+        line-height: 24px;
+        font-weight: 500;
+    }
+
+    .desc {
+        max-width: 36ch;
+        margin-top: 4px;
+        color: var(--c-fg-2);
+    }
+
+    .action {
+        margin-top: 16px;
+    }
+
+    .credit {
+        margin-top: 18px;
+        font-size: 11px;
+        color: var(--c-faint);
+    }
+}
+
+// The engraving is light ink, so it is turned dark on the light theme
+.carbon:not(.dark) .carbon-calm img {
+    filter: invert(1);
+}
+
+.carbon-event {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: start;
+    padding: 10px 0;
+    border-top: 1px solid var(--c-line);
+
+    .carbon-section-head + &,
+    h2 + & {
+        border-top: 0;
+    }
+
+    .text {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .text a {
+        display: block;
+        color: var(--c-fg);
+        text-decoration: none;
+    }
+
+    .sub {
+        display: block;
+        color: var(--c-muted);
+    }
+
+    .when {
+        white-space: nowrap;
+        text-align: right;
+        color: var(--c-muted);
+    }
+}
+
+.carbon-home .kuma_pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+}
+
+@media (max-width: 991.98px) {
+    .carbon-home-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

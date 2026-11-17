@@ -1,30 +1,41 @@
 <template>
     <div>
-        <div class="dockerHost-list my-4">
-            <p v-if="$root.remoteBrowserList.length === 0">
-                {{ $t("Not available, please setup.") }}
-            </p>
-
-            <ul class="list-group mb-3" style="border-radius: 1rem">
-                <li v-for="(remoteBrowser, index) in $root.remoteBrowserList" :key="index" class="list-group-item">
-                    {{ remoteBrowser.name }}
-                    <br />
-                    <a href="#" @click="$refs.remoteBrowserDialog.show(remoteBrowser.id)">{{ $t("Edit") }}</a>
-                </li>
-            </ul>
-
-            <button class="btn btn-primary me-2" type="button" @click="$refs.remoteBrowserDialog.show()">
-                <font-awesome-icon icon="plus" />
-                {{ $t("Add Remote Browser") }}
-            </button>
-        </div>
-
-        <div class="my-4 pt-4">
-            <h5 class="my-4 settings-subheading">{{ $t("What is a Remote Browser?") }}</h5>
-            <p>
+        <div class="my-3">
+            <EmptyState
+                v-if="$root.remoteBrowserList.length === 0"
+                illustration="magnifier"
+                :title="$t('No remote browsers yet')"
+            >
                 {{ $t("remoteBrowsersDescription") }}
-                <a href="https://docs.browserless.io/enterprise/open-source">{{ $t("self-hosted container") }}</a>
-            </p>
+                <template #action>
+                    <button class="btn btn-normal" type="button" @click="$refs.remoteBrowserDialog.show()">
+                        {{ $t("Add Remote Browser") }}
+                    </button>
+                </template>
+            </EmptyState>
+            <template v-else>
+                <div
+                    v-for="remoteBrowser in $root.remoteBrowserList"
+                    :key="remoteBrowser.id"
+                    class="carbon-channel carbon-linkrow"
+                >
+                    <span class="name">{{ remoteBrowser.name }}</span>
+                    <button
+                        type="button"
+                        class="carbon-quiet carbon-linkrow-target"
+                        @click="$refs.remoteBrowserDialog.show(remoteBrowser.id)"
+                    >
+                        {{ $t("Edit") }}
+                    </button>
+                </div>
+                <button class="btn btn-normal" type="button" @click="$refs.remoteBrowserDialog.show()">
+                    {{ $t("Add Remote Browser") }}
+                </button>
+                <p class="carbon-muted mt-4">
+                    {{ $t("remoteBrowsersDescription") }}
+                    <a href="https://docs.browserless.io/enterprise/open-source">{{ $t("self-hosted container") }}</a>
+                </p>
+            </template>
         </div>
 
         <RemoteBrowserDialog ref="remoteBrowserDialog" />
@@ -33,10 +44,12 @@
 
 <script>
 import RemoteBrowserDialog from "../../components/RemoteBrowserDialog.vue";
+import EmptyState from "../../components/EmptyState.vue";
 
 export default {
     components: {
         RemoteBrowserDialog,
+        EmptyState,
     },
 
     data() {
@@ -45,13 +58,13 @@ export default {
 
     computed: {
         settings() {
-            return this.$parent.$parent.$parent.settings;
+            return this.$parent.$parent.settings;
         },
         saveSettings() {
-            return this.$parent.$parent.$parent.saveSettings;
+            return this.$parent.$parent.saveSettings;
         },
         settingsLoaded() {
-            return this.$parent.$parent.$parent.settingsLoaded;
+            return this.$parent.$parent.settingsLoaded;
         },
     },
 };
